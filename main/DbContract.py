@@ -10,6 +10,7 @@ class DBContract(object):
     # TODO
     # DB_PATH =
 
+
     # column
     COLUMN_ID = 'ID'
     COLUMN_URL = 'URL'
