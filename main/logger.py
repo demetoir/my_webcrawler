@@ -10,20 +10,23 @@ import os
 # TODO change to singleton
 # TODO more comment
 class Logger(object):
-    def __init__(self, file_name):
-        self.log = logging.getLogger(file_name)
+    LOG_FOLDER_NAME = 'log'
+    LOG_PATH = path.join('.', LOG_FOLDER_NAME)
+
+    def __init__(self, logger_name):
+        self.log = logging.getLogger(logger_name)
         self.log.setLevel(logging.DEBUG)
 
-        self.log_file_path = path.join('.', 'log')
-        if not path.exists(self.log_file_path):
-            os.makedirs(self.log_file_path)
+        # make dir for log path
+        if not path.exists(self.LOG_PATH):
+            os.makedirs(self.LOG_PATH)
 
-        self.LOG_FILE_NAME = file_name + '.log'
-        self.LOG_FILE_FULL_PATH = path.join(self.log_file_path, self.LOG_FILE_NAME)
+        self.LOG_FOLDER_NAME = logger_name + '.log'
+        self.LOG_FULL_PATH = path.join(self.LOG_PATH, self.LOG_FOLDER_NAME)
 
         formatter = logging.Formatter('[%(levelname)s | %(filename)s:%(lineno)s] %(asctime)s > %(message)s')
 
-        file_handler = logging.FileHandler(self.LOG_FILE_FULL_PATH)
+        file_handler = logging.FileHandler(self.LOG_FULL_PATH)
         stream_handler = logging.StreamHandler()
 
         file_handler.setFormatter(formatter)

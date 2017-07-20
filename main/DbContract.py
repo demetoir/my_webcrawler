@@ -1,158 +1,225 @@
 from os import path
 
+# util lambda
+# make name string formatter
+wrap_nf = lambda x: '%(' + x + ')s'
 
-class DBContract(object):
-    # TODO
-    # DB_PATH =
-    DB_FULL_PATH = path.join('.', 'db', 'crawler.db')
-    DB_PATH = path.join('.', 'db')
-    DB_NAME = 'crawler.db'
+# string join for sql statement
+join_str = lambda x: " ".join(x)
 
-    # column
-    COLUMN_ID = 'ID'
-    COLUMN_URL = 'URL'
-    COLUMN_TITLE = 'TITLE'
-    COLUMN_IS_CHECKED = 'IS_CHECKED'
 
-    # placeholder
-    PLACEHOLDER_TABLE_NAME = 'table_name'
-    PLACEHOLDER_URL = 'url'
-    PLACEHOLDER_TITLE = 'title'
-    PLACEHOLDER_IS_CHECKED = 'is_checked'
-    PLACEHOLDER_ID = 'id'
-    PLACEHOLDER_LIMIT_NUMBER = 'limit_number'
+# TODO add keyword of sql
+class SQL(object):
+    CREATE_TABLE = "CREATE_TABLE"
+    INSERT_INTO = "INSERT INTO"
+    INTEGER = "INTEGER"
+    CHAR = "CHAR"
+    PRIMARY_KEY = 'PRIMARY_KEY'
+    AUTOINCREMENT = 'AUTOINCREMENT'
+    UNIQUE = "UNIQUE"
+    check = "check"
+    AND = "AND"
+    OR = "OR"
 
-    # table name list
-    TABLE_NAME_LIST = ['ruliweb', 'buzzbee', 'schoolmusic', ]
+    def BRACKET(self, statement):
+        return '(%s)' % str(statement)
 
+    pass
+
+
+# TODO need refactor
+URL_SIZE = 500
+TITLE_SIZE = 200
+
+
+# TODO add column category
+class NewFeedContract(object):
+    def __repr__(self):
+        return self.__class__.__name__
+
+    # table name
+    TABLE_NAME = 'NEW_FEED_TABLE'
+
+    # COL == column
+    COL_ID = 'ID'
+    COL_URL = 'URL'
+    COL_TITLE = 'TITLE'
+    COL_IS_CHECKED = 'IS_CHECKED'
+
+    # KW == keyword
+    KW_ID = 'ID'
+    KW_URL = 'URL'
+    KW_TITLE = 'TITLE'
+    KW_IS_CHECKED = 'IS_CHECKED'
+    KW_LIMIT_NUMBER = 'LIMIT_NUMBER'
+
+    # PH == placeholder
+    PH_ID = wrap_nf(COL_ID)
+    PH_URL = wrap_nf(COL_URL)
+    PH_TITLE = wrap_nf(COL_TITLE)
+    PH_IS_CHECKED = wrap_nf(COL_IS_CHECKED)
+    PH_LIMIT_NUMBER = wrap_nf(KW_LIMIT_NUMBER)
+    PH_TABLE_NAME = wrap_nf(TABLE_NAME)
+
+    # SQL statement
     # create table
-    SQL_CREATE_TABLE = """
-    CREATE TABLE %(PLACEHOLDER_TABLE_NAME)s (
-    %(COLUMN_ID)s INTEGER PRIMARY KEY AUTOINCREMENT,
-    %(COLUMN_URL)s  CHAR(500) UNIQUE,
-    %(COLUMN_TITLE)s CHAR(200),
-    %(COLUMN_IS_CHECKED)s INTEGER check(%(COLUMN_IS_CHECKED)s >=0 AND %(COLUMN_IS_CHECKED)s <= 1)
-    )""" % {
-        "COLUMN_ID": COLUMN_ID,
-        "COLUMN_URL": COLUMN_URL,
-        "COLUMN_TITLE": COLUMN_TITLE,
-        "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED,
-        "PLACEHOLDER_TABLE_NAME": "%s"
-    }
+    SQL_CREATE_TABLE = join_str(
+        ['CREATE TABLE %s (' % TABLE_NAME,
+         '%s INTEGER PRIMARY KEY AUTOINCREMENT,' % COL_ID,
+         '%s CHAR(%d) UNIQUE,' % (COL_URL, URL_SIZE),
+         '%s CHAR(%d),' % (COL_TITLE, TITLE_SIZE),
+         "%s INTEGER check( %s >= 0 AND %s<= 1 )" % (COL_IS_CHECKED, COL_IS_CHECKED, COL_IS_CHECKED),
+         ")"]
+    )
 
     # insert item
-    SQL_INSERT = """
-    INSERT INTO 
-    %(PLACEHOLDER_TABLE_NAME)s (%(COLUMN_URL)s, %(COLUMN_TITLE)s, %(COLUMN_IS_CHECKED)s) 
-    VALUES (:%(PLACEHOLDER_URL)s , :%(PLACEHOLDER_TITLE)s, 0)
-    """ % {"PLACEHOLDER_TABLE_NAME": "%s",
-           "PLACEHOLDER_URL": PLACEHOLDER_URL,
-           "PLACEHOLDER_TITLE": PLACEHOLDER_TITLE,
-           "COLUMN_URL": COLUMN_URL,
-           "COLUMN_TITLE": COLUMN_TITLE,
-           "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED
-           }
+    SQL_INSERT = join_str(
+        ['INSERT INTO %s' % PH_TABLE_NAME,
+         '(%s, %s, %s)' % (COL_URL, COL_TITLE, COL_IS_CHECKED),
+         'VALUES (%s, %s, 0)' % (PH_URL, PH_TITLE)]
+    )
 
     # query item
-    SQL_QUERY_ALL = """
-    SELECT * 
-    FROM %(PLACEHOLDER_TABLE_NAME)s 
-    ORDER BY %(COLUMN_ID)s 
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": "%s",
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_QUERY_ALL = join_str([
+        'SELECT *',
+        'FROM', TABLE_NAME,
+        'ORDER BY', COL_ID])
 
-    SQL_QUERY_LIMIT = """
-    SELECT * 
-    FROM :%(PLACEHOLDER_TABLE_NAME)s
-    LIMIT :%(PLACEHOLDER_LIMIT_NUMBER)s
-    ORDER BY %(COLUMN_ID)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "PLACEHOLDER_LIMIT_NUMBER": PLACEHOLDER_LIMIT_NUMBER,
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_QUERY_LIMIT = join_str([
+        'SELECT *',
+        'FROM', TABLE_NAME,
+        'ORDER BY', COL_ID,
+        'limit', PH_LIMIT_NUMBER])
 
-    SQL_QUERY_UNCHECKED_ALL = """
-    SELECT * 
-    FROM :%(PLACEHOLDER_TABLE_NAME)s
-    WHERE %(COLUMN_IS_CHECKED)s = 0
-    ORDER BY %(COLUMN_ID)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED,
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_QUERY_UNCHECKED_ALL = join_str(
+        ['SELECT *',
+         'FROM', TABLE_NAME,
+         'WHERE', PH_IS_CHECKED,
+         'ORDER BY', PH_ID
+         ])
 
-    SQL_QUERY_UNCHECKED_LIMIT = """
-    SELECT * 
-    FROM :%(PLACEHOLDER_TABLE_NAME)s
-    WHERE %(COLUMN_IS_CHECKED)s = 0
-    LIMIT :%(PLACEHOLDER_LIMIT_NUMBER)s
-    ORDER BY %(COLUMN_ID)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "PLACEHOLDER_LIMIT_NUMBER": PLACEHOLDER_LIMIT_NUMBER,
-        "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED,
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_QUERY_UNCHECKED_LIMIT = join_str([
+        'SELECT *',
+        'FROM', TABLE_NAME,
+        'WHERE', PH_IS_CHECKED, '= 0',
+        'LIMIT', PH_LIMIT_NUMBER,
+        'ORDER BY', COL_ID
+    ])
 
-    SQL_QUERY_CHECKED_ALL = """
-    SELECT * 
-    FROM :%(PLACEHOLDER_TABLE_NAME)s
-    WHERE %(COLUMN_IS_CHECKED)s = 1
-    ORDER BY %(COLUMN_ID)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED,
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_QUERY_CHECKED_ALL = join_str(
+        ['SELECT *',
+         'FROM', TABLE_NAME,
+         'WHERE', 'COL_IS_CHECKED', '= 1',
+         'ORDER BY', COL_ID])
 
-    SQL_QUERY_CHECKED_LIMIT = """
-    SELECT * 
-    FROM :%(PLACEHOLDER_TABLE_NAME)s
-    WHERE %(COLUMN_IS_CHECKED)s = 1
-    LIMIT :%(PLACEHOLDER_LIMIT_NUMBER)s
-    ORDER BY %(COLUMN_ID)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "PLACEHOLDER_LIMIT_NUMBER": PLACEHOLDER_LIMIT_NUMBER,
-        "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED,
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_QUERY_CHECKED_LIMIT = join_str([
+        'SELECT *',
+        'FROM', TABLE_NAME,
+        'WHERE', COL_IS_CHECKED, '= 1',
+        'LIMIT', PH_LIMIT_NUMBER,
+        'ORDER BY', COL_ID
+    ])
 
-    SQL_QUERY_BY_URL_AND_TITLE = """
-    SELECT * 
-    FROM :%(PLACEHOLDER_TABLE_NAME)s
-    WHERE %(COLUMN_URL)s = :%(PLACEHOLDER_URL)s AND %(COLUMN_TITLE)s = :%(PLACEHOLDER_URL)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "PLACEHOLDER_URL": PLACEHOLDER_URL,
-        "PLACEHOLDER_TITLE": PLACEHOLDER_TITLE,
-        "COLUMN_URL": COLUMN_URL,
-        "COLUMN_TITLE": COLUMN_TITLE
-    }
+    SQL_QUERY_BY_URL_AND_TITLE = join_str([
+        'SELECT *',
+        'FROM', TABLE_NAME,
+        'WHERE', COL_URL, '=', PH_URL,
+        'AND', COL_TITLE, '=', PH_URL,
+    ])
 
     # update item
-    SQL_CHECK_ITEM = """
-    UPDATE :%(PLACEHOLDER_TABLE_NAME)s
-    SET %(COLUMN_IS_CHECKED)s = 1
-    WHERE %(COLUMN_ID)s = :%(PLACEHOLDER_ID)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "PLACEHOLDER_ID": PLACEHOLDER_ID,
-        "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED,
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_CHECK_ITEM = join_str([
+        'UPDATE', TABLE_NAME,
+        'SET ', COL_IS_CHECKED, '= 1',
+        'WHERE', COL_ID, '=', PH_ID
+    ])
 
-    SQL_UNCHECK_ITEM = """
-    UPDATE :%(PLACEHOLDER_TABLE_NAME)s
-    SET %(COLUMN_IS_CHECKED)s = 0
-    WHERE %(COLUMN_ID)s = :%(PLACEHOLDER_ID)s
-    """ % {
-        "PLACEHOLDER_TABLE_NAME": PLACEHOLDER_TABLE_NAME,
-        "PLACEHOLDER_ID": PLACEHOLDER_ID,
-        "COLUMN_IS_CHECKED": COLUMN_IS_CHECKED,
-        "COLUMN_ID": COLUMN_ID
-    }
+    SQL_UNCHECK_ITEM = join_str([
+        'UPDATE', TABLE_NAME,
+        'SET', COL_IS_CHECKED, '= 1',
+        'WHERE', COL_ID, '=', PH_ID,
+    ])
+
+
+class LastFeedContract(object):
+    def __repr__(self):
+        return self.__class__.__name__
+
+    # table name
+    TABLE_NAME = 'LAST_FEED_TABLE'
+
+    # COL == column
+    COL_ID = 'ID'
+    COL_URL = 'URL'
+
+    # KW == keyword
+    KW_ID = 'ID'
+    KW_URL = 'URL'
+
+    # PH == placeholder
+    PH_ID = wrap_nf(COL_ID)
+    PH_URL = wrap_nf(COL_URL)
+    PH_TABLE_NAME = wrap_nf(TABLE_NAME)
+
+    # sql statement
+    # TODO implement
+    SQL_CREATE_TABLE = join_str([
+        'CREATE TABLE %s (' % TABLE_NAME,
+        '%s INTEGER PRIMARY KEY AUTOINCREMENT,' % COL_ID,
+        '%s CHAR(%d) UNIQUE' % (COL_URL, URL_SIZE),
+        ')'
+    ])
+
+
+class SavedFeedContract(object):
+    def __repr__(self):
+        return self.__class__.__name__
+
+    # table name
+    TABLE_NAME = 'SAVED_FEED_TABLE'
+
+    # COL == column
+    COL_ID = 'ID'
+    COL_URL = 'URL'
+    COL_TITLE = 'TITLE'
+    COL_IS_CHECKED = 'IS_CHECKED'
+
+    # KW == keyword
+    KW_ID = 'ID'
+    KW_URL = 'URL'
+    KW_TITLE = 'TITLE'
+    KW_IS_CHECKED = 'IS_CHECKED'
+    KW_LIMIT_NUMBER = 'LIMIT_NUMBER'
+
+    # PH == placeholder
+    PH_ID = wrap_nf(COL_ID)
+    PH_URL = wrap_nf(COL_URL)
+    PH_TITLE = wrap_nf(COL_TITLE)
+    PH_IS_CHECKED = wrap_nf(COL_IS_CHECKED)
+    PH_LIMIT_NUMBER = wrap_nf(KW_LIMIT_NUMBER)
+    PH_TABLE_NAME = wrap_nf(TABLE_NAME)
+
+    # sql statement
+    # TODO implement
+    SQL_CREATE_TABLE = join_str([
+        'CREATE TABLE %s (' % TABLE_NAME,
+        '%s INTEGER PRIMARY KEY AUTOINCREMENT,' % COL_ID,
+        '%s CHAR(%d) UNIQUE,' % (COL_URL, URL_SIZE),
+        '%s CHAR(%d),' % (COL_TITLE, TITLE_SIZE),
+        "%s INTEGER check( %s >= 0 AND %s<= 1 )" % (COL_IS_CHECKED, COL_IS_CHECKED, COL_IS_CHECKED),
+        ')'
+    ])
+
+
+class DBContract(object):
+    # db info
+    DB_NAME = 'crawler.db'
+    DB_FOLDER_NAME = 'db'
+    DB_FULL_PATH = path.join('.', DB_FOLDER_NAME, DB_NAME)
+    DB_PATH = path.join('.', DB_FOLDER_NAME)
+
+    # DB each table's contracts
+    # TODO change to automatically apply when db schema changed
+    CONTRACTS = {NewFeedContract.TABLE_NAME: NewFeedContract,
+                 LastFeedContract.TABLE_NAME: LastFeedContract,
+                 SavedFeedContract.TABLE_NAME: SavedFeedContract}

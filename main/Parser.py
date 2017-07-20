@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 
 from main.Tag import Tag
-from main.DbContract import DBContract
+from main.DbContract import *
 
 HTML_PARSER = 'lxml'
 
@@ -27,7 +27,7 @@ class Parser(object):
         ret = []
 
         for url_, title in zip(url_list, title_list):
-            ret += [{DBContract.PLACEHOLDER_TITLE: title, DBContract.PLACEHOLDER_URL: url_}]
+            ret += [{NewFeedContract.KW_TITLE: title, NewFeedContract.KW_URL: url_}]
         return ret
 
     @staticmethod

@@ -1,6 +1,6 @@
 import sqlite3
 
-from main.DbContract import DBContract
+from main.DbContract import *
 from main.logger import Logger
 import os
 
@@ -10,11 +10,35 @@ class DbHelper(object):
     MAX_QUERY_PAGE = 5
 
     def __init__(self, ):
+        # load contracts
+        self.contracts = {}
+        for key in DBContract.CONTRACTS:
+            self.contracts[key] = DBContract.CONTRACTS[key]
+
         self.log = Logger(self.__class__.__name__).log
-        self.init_db()
+
+        self._init_db_()
         return
 
-    def __query__(self, sql, param=None):
+    def _init_db_(self, ):
+        try:
+            # make db dir
+            if not os.path.exists(DBContract.DB_PATH):
+                os.mkdir(DBContract.DB_PATH)
+
+            self._create_table_()
+        except sqlite3.Error as e:
+            self.log.error(e)
+
+    def _create_table_(self):
+        with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
+            # create each table
+            for key in DBContract.CONTRACTS:
+                sql = DBContract.CONTRACTS[key].SQL_CREATE_TABLE
+                conn.execute(sql)
+                self.log.info(key + 'created')
+
+    def _query_(self, sql, param=None):
         try:
             with sqlite3.connect(DBContract.DB_NAME) as conn:
                 if param is not None:
@@ -29,7 +53,7 @@ class DbHelper(object):
         self.log.info("query success")
         return rows
 
-    def __insert__(self, sql, param=None):
+    def _insert_(self, sql, param=None):
         try:
             with sqlite3.connect(DBContract.DB_NAME) as conn:
                 if param is not None:
@@ -45,9 +69,9 @@ class DbHelper(object):
         self.log.info("insert success")
         return True
 
-    def __insert_many__(self, sql, param_list):
+    def _insert_many_(self, sql, param_list):
         try:
-            with sqlite3.connect(DBContract.DB_NAME) as conn:
+            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
                 conn.executemany(sql, param_list)
                 conn.commit()
         except sqlite3.Error as e:
@@ -57,64 +81,33 @@ class DbHelper(object):
         self.log.info("insert_many success, %d done" % len(param_list))
         return True
 
-    def __create_table__(self):
-        with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
-            for table_name in DBContract.TABLE_NAME_LIST:
-                # TODO need hack
-                sql = DBContract.SQL_CREATE_TABLE % table_name
-                conn.execute(sql)
-                self.log.info("create table " + table_name)
-
-    def init_db(self, ):
-        try:
-            if not os.path.exists(DBContract.DB_PATH):
-                os.mkdir(DBContract.DB_PATH)
-
-            self.__create_table__()
-        except sqlite3.Error as e:
-            self.log.error(e)
-
     # query
-    def query_all(self, table_name):
-        sql = DBContract.SQL_QUERY_ALL % table_name
-
-        return self.__query__(sql, None)
-
-    # TODO test
-    def query_limit(self, table_name, max_query_item=MAX_QUERY_PAGE):
-        sql = DBContract.SQL_QUERY_LIMIT
-        param = {DBContract.PLACEHOLDER_TABLE_NAME: table_name,
-                 DBContract.PLACEHOLDER_LIMIT_NUMBER: max_query_item, }
-
-        return self.__query__(sql, param)
+    def query_all(self, contract_name):
+        sql = self.contracts[contract_name].SQL_QUERY_ALL
+        return self._query_(sql, None)
 
     # TODO test
-    def query_uncheck_item(self, table_name, item_id, ):
-        sql = DBContract.SQL_UNCHECK_ITEM
-        param = {DBContract.PLACEHOLDER_TABLE_NAME: table_name,
-                 DBContract.PLACEHOLDER_ID: item_id,
-                 }
-
-        return self.__query__(sql, param)
+    def query_limit(self, contract_name, max_query_item=MAX_QUERY_PAGE):
+        sql = self.contracts[contract_name].SQL_QUERY_LIMIT
+        param = {NewFeedContract.KW_LIMIT_NUMBER: max_query_item}
+        return self._query_(sql, param)
 
     # TODO test
-    def query_check_item(self, table_name, item_id, ):
-        sql = DBContract.SQL_CHECK_ITEM
-        param = {DBContract.PLACEHOLDER_TABLE_NAME: table_name,
-                 DBContract.PLACEHOLDER_ID: item_id,
-                 }
+    def query_uncheck_item(self, contract_name, item_id):
+        sql = self.contracts[contract_name].SQL_UNCHECK_ITEM
+        param = {self.contracts[contract_name].PLACEHOLDER_ID: item_id}
+        return self._query_(sql, param)
 
-        return self.__query__(sql, param)
+    # TODO test
+    def query_check_item(self, contract_name, item_id):
+        sql = self.contracts[contract_name].SQL_CHECK_ITEM
+        param = {self.contracts[contract_name].PLACEHOLDER_ID: item_id}
+        return self._query_(sql, param)
 
     # insert
-    def insert_items(self, table_name, items, ):
-        sql = DBContract.SQL_INSERT % table_name
-
-        # add table name
-        for item in items:
-            item[DBContract.PLACEHOLDER_TABLE_NAME] = table_name
-
-        return self.__insert_many__(sql, items)
+    def insert_items(self, contract_name, items):
+        sql = self.contracts[contract_name].SQL_INSERT
+        return self._insert_many_(sql, items)
 
     # util
     @staticmethod
