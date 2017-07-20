@@ -2,14 +2,11 @@ from os import path
 
 
 class DBContract(object):
-    def __init__(self):
-        pass
-
-    DB_NAME = 'crawler.db'
-
     # TODO
     # DB_PATH =
-
+    DB_FULL_PATH = path.join('.', 'db', 'crawler.db')
+    DB_PATH = path.join('.', 'db')
+    DB_NAME = 'crawler.db'
 
     # column
     COLUMN_ID = 'ID'

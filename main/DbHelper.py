@@ -2,6 +2,7 @@ import sqlite3
 
 from main.DbContract import DBContract
 from main.logger import Logger
+import os
 
 
 # TODO need to practice logging module
@@ -57,7 +58,7 @@ class DbHelper(object):
         return True
 
     def __create_table__(self):
-        with sqlite3.connect(DBContract.DB_NAME) as conn:
+        with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
             for table_name in DBContract.TABLE_NAME_LIST:
                 # TODO need hack
                 sql = DBContract.SQL_CREATE_TABLE % table_name
@@ -66,6 +67,9 @@ class DbHelper(object):
 
     def init_db(self, ):
         try:
+            if not os.path.exists(DBContract.DB_PATH):
+                os.mkdir(DBContract.DB_PATH)
+
             self.__create_table__()
         except sqlite3.Error as e:
             self.log.error(e)
