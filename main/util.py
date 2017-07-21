@@ -1,18 +1,21 @@
-from os import path
 import shutil
 import os
 from main.DbContract import *
-from main.logger import Logger
 
 
 def clean_up():
-    print(DBContract.DB_PATH)
     if os.path.exists(DBContract.DB_PATH):
         shutil.rmtree(DBContract.DB_PATH)
 
-    # print(Logger.LOG_PATH)
-    # if os.path.exists(Logger.LOG_PATH):
-    #     shutil.rmtree(Logger.LOG_PATH)
+
+def print_table(cursor):
+    for i in cursor:
+        print(i)
+
+
+def print_parse_items(items):
+    for item in items:
+        print(item)
 
 
 if __name__ == '__main__':

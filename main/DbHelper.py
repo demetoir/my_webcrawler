@@ -22,25 +22,29 @@ class DbHelper(object):
 
     def _init_db_(self, ):
         try:
-            # make db dir
             if not os.path.exists(DBContract.DB_PATH):
                 os.mkdir(DBContract.DB_PATH)
 
             self._create_table_()
         except sqlite3.Error as e:
             self.log.error(e)
+            raise e
 
     def _create_table_(self):
+        tables = self.get_tables()
+
         with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
             # create each table
             for key in DBContract.CONTRACTS:
-                sql = DBContract.CONTRACTS[key].SQL_CREATE_TABLE
-                conn.execute(sql)
-                self.log.info(key + 'created')
+                table_name = DBContract.CONTRACTS[key].TABLE_NAME
+                if table_name not in tables:
+                    sql = DBContract.CONTRACTS[key].SQL_CREATE_TABLE
+                    conn.execute(sql)
+                    self.log.info('%s created' % table_name)
 
     def _query_(self, sql, param=None):
         try:
-            with sqlite3.connect(DBContract.DB_NAME) as conn:
+            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
                 if param is not None:
                     rows = conn.execute(sql, param)
                 else:
@@ -48,14 +52,14 @@ class DbHelper(object):
 
         except sqlite3.Error as e:
             self.log.error(e)
-            return None
+            raise e
 
         self.log.info("query success")
         return rows
 
     def _insert_(self, sql, param=None):
         try:
-            with sqlite3.connect(DBContract.DB_NAME) as conn:
+            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
                 if param is not None:
                     conn.execute(sql, param)
                 else:
@@ -76,7 +80,7 @@ class DbHelper(object):
                 conn.commit()
         except sqlite3.Error as e:
             self.log.error(e)
-            return None
+            raise e
 
         self.log.info("insert_many success, %d done" % len(param_list))
         return True
@@ -111,10 +115,20 @@ class DbHelper(object):
 
     # util
     @staticmethod
-    def print_all():
+    def print_all(contract_name):
         with sqlite3.connect(DBContract.DB_NAME) as conn:
-            cur = conn.execute(DBContract.SQL_QUERY_ALL)
+            cur = conn.execute()
 
         for col in cur:
             print(col)
         print()
+
+    # TODO refactor
+    def get_tables(self):
+        with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
+            cursor = conn.cursor()
+            sql = "SELECT name FROM SQLITE_MASTER WHERE type='table'"
+            cursor.execute(sql)
+            tables = [row[0] for row in cursor.fetchall()]
+
+        return tables

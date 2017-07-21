@@ -2,7 +2,7 @@ from os import path
 
 # util lambda
 # make name string formatter
-wrap_nf = lambda x: '%(' + x + ')s'
+wrap_nf = lambda x: ':' + x.lower()
 
 # string join for sql statement
 join_str = lambda x: " ".join(x)
@@ -47,11 +47,11 @@ class NewFeedContract(object):
     COL_IS_CHECKED = 'IS_CHECKED'
 
     # KW == keyword
-    KW_ID = 'ID'
-    KW_URL = 'URL'
-    KW_TITLE = 'TITLE'
-    KW_IS_CHECKED = 'IS_CHECKED'
-    KW_LIMIT_NUMBER = 'LIMIT_NUMBER'
+    KW_ID = 'id'
+    KW_URL = 'url'
+    KW_TITLE = 'title'
+    KW_IS_CHECKED = 'is_checked'
+    KW_LIMIT_NUMBER = 'limit_number'
 
     # PH == placeholder
     PH_ID = wrap_nf(COL_ID)
@@ -74,9 +74,9 @@ class NewFeedContract(object):
 
     # insert item
     SQL_INSERT = join_str(
-        ['INSERT INTO %s' % PH_TABLE_NAME,
-         '(%s, %s, %s)' % (COL_URL, COL_TITLE, COL_IS_CHECKED),
-         'VALUES (%s, %s, 0)' % (PH_URL, PH_TITLE)]
+        ['INSERT INTO %s' % TABLE_NAME,
+         '( %s , %s , %s )' % (COL_URL, COL_TITLE, COL_IS_CHECKED),
+         'VALUES ( %s , %s , 0)' % (PH_URL, PH_TITLE)]
     )
 
     # query item
@@ -94,7 +94,7 @@ class NewFeedContract(object):
     SQL_QUERY_UNCHECKED_ALL = join_str(
         ['SELECT *',
          'FROM', TABLE_NAME,
-         'WHERE', PH_IS_CHECKED,
+         'WHERE', PH_IS_CHECKED, '= 0',
          'ORDER BY', PH_ID
          ])
 
