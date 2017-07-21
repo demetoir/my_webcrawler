@@ -100,7 +100,6 @@ def test_05_query_checked_item():
     for i in rows:
         check_id = i[NewFeedContract.IDX_ID]
         old_row = i
-    print("check id = %d" % check_id)
 
     # check
     db_helper.query_check_item(table_name, check_id)
@@ -111,7 +110,9 @@ def test_05_query_checked_item():
     for i in rows:
         new_row = i
 
+    # assertion query checked item
     if old_row == new_row:
+        print("check id = %d" % check_id)
         print("old_row", old_row)
         print("new_row", new_row)
         raise AssertionError
@@ -176,7 +177,6 @@ def test_07_delete_by_id():
     cursor = db_helper.query_limit(table_name, 1)
     for row in cursor:
         delete_id = row[NewFeedContract.IDX_ID]
-    print("delete id = %d" % delete_id)
 
     # delete by id
     db_helper.delete_by_id(table_name, delete_id)
@@ -195,5 +195,50 @@ def test_07_delete_by_id():
         raise AssertionError
 
 
+@with_setup(setup_func, teardown_func)
+def test_08_query_by_urls():
+    db_helper = DbHelper()
+    table_name = NewFeedContract.TABLE_NAME
+    idx_url = NewFeedContract.IDX_URL
+
+    # get urls
+    old_rows = db_helper.query_limit(table_name, 10).fetchall()
+    urls = []
+    for row in old_rows:
+        urls += [row[idx_url]]
+
+    # query by urls
+    new_rows = db_helper.query_by_urls(table_name, urls)
+    query_urls = []
+    for row in new_rows:
+        query_urls += [row[idx_url]]
+
+    # assertion
+    fine = True
+    for url in urls:
+        if url not in query_urls:
+            fine = False
+            break
+
+    if not fine:
+        print('old_rows')
+        util.print_table(old_rows)
+        print()
+
+        print('new_rows')
+        util.print_table(new_rows)
+        print()
+
+        print('urls')
+        for i in urls:
+            print(i)
+        print()
+
+        print('query_urls')
+        for i in query_urls:
+            print(i)
+        print()
+
+        raise AssertionError
 
 # end

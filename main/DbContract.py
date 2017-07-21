@@ -87,10 +87,11 @@ class NewFeedContract(object):
         'limit %s' % PH_LIMIT_NUMBER
     ])
 
+    # todo
     SQL_QUERY_BY_URL = join_str([
         'SELECT *',
-        'FROM', TABLE_NAME,
-        'WHERE', COL_URL, '=', PH_URL,
+        'FROM %s' % TABLE_NAME,
+        'WHERE %s = %s' % (COL_URL, PH_URL),
         'ORDER BY %s desc' % COL_URL
     ])
 

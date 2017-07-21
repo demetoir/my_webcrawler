@@ -13,7 +13,7 @@ def teardown_func():
     pass
 
 
-def test_01_parser():
+def test_01_parse_ruliweb():
     parser = Parser()
 
     ret = []

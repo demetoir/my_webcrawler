@@ -30,7 +30,7 @@ class DbHelper(object):
             raise e
 
     def _create_table_(self):
-        tables = self.get_tables()
+        tables = self.query_tables()
 
         with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
             # create each table
@@ -41,71 +41,41 @@ class DbHelper(object):
                     conn.execute(sql)
                     self.log.info('%s created' % table_name)
 
-    def _query_(self, sql, param=None):
+    def _execute_(self, sql, param=None, commit=False, many=False):
         try:
             with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
-                if param is not None:
-                    cursor = conn.execute(sql, param)
+                if many:
+                    execute = conn.executemany
                 else:
-                    cursor = conn.execute(sql)
+                    execute = conn.execute
 
+                if param is None:
+                    cursor = execute(sql)
+                else:
+                    cursor = execute(sql, param)
+
+                if commit:
+                    conn.commit()
         except sqlite3.Error as e:
             self.log.error(e)
             raise e
 
         return cursor
 
+    def _query_(self, sql, param=None):
+        return self._execute_(sql, param)
+
     def _insert_(self, sql, param=None):
-        try:
-            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
-                if param is not None:
-                    conn.execute(sql, param)
-                else:
-                    conn.execute(sql)
+        return self._execute_(sql, param, commit=True)
 
-                conn.commit()
-        except sqlite3.Error as e:
-            self.log.error(e)
-            return False
-
-    def _insert_many_(self, sql, param_list):
-        try:
-            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
-                conn.executemany(sql, param_list)
-                conn.commit()
-        except sqlite3.Error as e:
-            self.log.error(e)
-            raise e
+    def _insert_many_(self, sql, param=None):
+        return self._execute_(sql, param, commit=True, many=True)
 
     def _update_(self, sql, param=None):
-        try:
-            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
-                if param is not None:
-                    conn.execute(sql, param)
-                else:
-                    conn.execute(sql)
-
-                conn.commit()
-        except sqlite3.Error as e:
-            self.log.error(e)
-            return False
-
-        return True
+        return self._execute_(sql, param, commit=True)
 
     def _delete_(self, sql, param=None):
-        try:
-            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
-                if param is not None:
-                    conn.execute(sql, param)
-                else:
-                    conn.execute(sql)
-
-                conn.commit()
-        except sqlite3.Error as e:
-            self.log.error(e)
-            return False
-
-        return True
+        return self._execute_(sql, param, commit=True)
 
     # query
     def query_all(self, table_name):
@@ -121,23 +91,33 @@ class DbHelper(object):
         self.log.info("query_limit success")
         return ret
 
-    def query_url(self, table_name, url):
+    # TODO i don't like this implement
+    def query_by_urls(self, table_name, urls):
+        rows = []
         sql = DBContract.CONTRACTS[table_name].SQL_QUERY_BY_URL
-        param = {DBContract.CONTRACTS[table_name].KW_URL: url}
-        ret = self._query_(sql, param)
-        self.log.info("query_url success")
-        return ret
+        for url in urls:
+            param = {DBContract.CONTRACTS[table_name].KW_URL: url}
+            rows += self._query_(sql, param).fetchall()
+
+        self.log.info("query_by_urls success")
+        return rows
 
     # insert
+    # todo hack, optimize
     def insert_items(self, table_name, items):
-        # TODO optimize
-        filtered_items = []
-        for item in items:
-            url = item[DBContract.CONTRACTS[table_name].KW_URL]
-            rows = self.query_url(table_name, url).fetchall()
-            if len(rows) == 0:
-                filtered_items += [item]
+        # get insert urls
+        key = DBContract.CONTRACTS[table_name].KW_URL
+        insert_urls = [item[key] for item in items]
 
+        # get exist_urls
+        rows = self.query_by_urls(table_name, insert_urls)
+        idx = DBContract.CONTRACTS[table_name].IDX_URL
+        exist_urls = [row[idx] for row in rows]
+
+        # get filtered_items
+        filtered_items = [item for item in items if item[key] not in exist_urls]
+
+        # insert filtered_items
         sql = self.contracts[table_name].SQL_INSERT
         self._insert_many_(sql, filtered_items)
         self.log.info("insert %d items success" % len(filtered_items))
@@ -166,11 +146,7 @@ class DbHelper(object):
         self.log.info("delete success")
 
     # TODO refactor
-    def get_tables(self):
-        with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
-            cursor = conn.cursor()
-            sql = "SELECT name FROM SQLITE_MASTER WHERE type='table'"
-            cursor.execute(sql)
-            tables = [row[0] for row in cursor.fetchall()]
-
-        return tables
+    def query_tables(self):
+        sql = "SELECT name FROM SQLITE_MASTER WHERE type='table'"
+        rows = self._query_(sql, None).fetchall()
+        return [row[0] for row in rows]
