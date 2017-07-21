@@ -65,42 +65,33 @@ class DbHelper(object):
     def _query_(self, sql, param=None):
         return self._execute_(sql, param)
 
-    def _insert_(self, sql, param=None):
-        return self._execute_(sql, param, commit=True)
-
-    def _insert_many_(self, sql, param=None):
-        return self._execute_(sql, param, commit=True, many=True)
+    def _insert_(self, sql, param=None, many=False):
+        return self._execute_(sql, param, commit=True, many=many)
 
     def _update_(self, sql, param=None):
         return self._execute_(sql, param, commit=True)
 
-    def _delete_(self, sql, param=None):
-        return self._execute_(sql, param, commit=True)
+    def _delete_(self, sql, param=None, many=False):
+        return self._execute_(sql, param, commit=True, many=many)
 
     # query
-    def query_all(self, table_name):
-        sql = self.contracts[table_name].SQL_QUERY_ALL
-        ret = self._query_(sql, None)
+    def query_all(self, table_name, limit=-1):
+        sql = DBContract.CONTRACTS[table_name].SQL_QUERY_ALL
+        if limit == -1:
+            ret = self._query_(sql, None)
+        else:
+            sql += DBContract.CONTRACTS[table_name].SQL_LIMIT
+            param = {NewFeedContract.KW_LIMIT_NUMBER: limit}
+            ret = self._query_(sql, param)
+
         self.log.info("query_all success")
         return ret
 
-    def query_limit(self, table_name, max_query_item=MAX_QUERY_PAGE):
-        sql = self.contracts[table_name].SQL_QUERY_LIMIT
-        param = {NewFeedContract.KW_LIMIT_NUMBER: max_query_item}
-        ret = self._query_(sql, param)
-        self.log.info("query_limit success")
-        return ret
-
-    # TODO i don't like this implement
     def query_by_urls(self, table_name, urls):
-        rows = []
-        sql = DBContract.CONTRACTS[table_name].SQL_QUERY_BY_URL
-        for url in urls:
-            param = {DBContract.CONTRACTS[table_name].KW_URL: url}
-            rows += self._query_(sql, param).fetchall()
-
+        sql = DBContract.CONTRACTS[table_name].SQL_QUERY_BY_URL % ','.join(['?'] * len(urls))
+        cursor = self._query_(sql, urls)
         self.log.info("query_by_urls success")
-        return rows
+        return cursor
 
     # insert
     # todo hack, optimize
@@ -110,7 +101,7 @@ class DbHelper(object):
         insert_urls = [item[key] for item in items]
 
         # get exist_urls
-        rows = self.query_by_urls(table_name, insert_urls)
+        rows = self.query_by_urls(table_name, insert_urls).fetchall()
         idx = DBContract.CONTRACTS[table_name].IDX_URL
         exist_urls = [row[idx] for row in rows]
 
@@ -119,34 +110,30 @@ class DbHelper(object):
 
         # insert filtered_items
         sql = self.contracts[table_name].SQL_INSERT
-        self._insert_many_(sql, filtered_items)
+        self._insert_(sql, filtered_items, many=True)
         self.log.info("insert %d items success" % len(filtered_items))
         return len(filtered_items)
 
     # update
-    def query_uncheck_item(self, table_name, item_id):
-        sql = self.contracts[table_name].SQL_UNCHECK_ITEM
-        param = {self.contracts[table_name].KW_ID: item_id}
+    def update_is_check(self, table_name, item_id, value):
+        sql = DBContract.CONTRACTS[table_name].SQL_UPDATE_CHECK_ITEM
+        param = {DBContract.CONTRACTS[table_name].KW_ID: item_id,
+                 DBContract.CONTRACTS[table_name].KW_IS_CHECKED: value}
         ret = self._update_(sql, param)
         self.log.info("query_uncheck_item success")
         return ret
 
-    def query_check_item(self, table_name, item_id):
-        sql = self.contracts[table_name].SQL_CHECK_ITEM
-        param = {self.contracts[table_name].KW_ID: item_id}
-        ret = self._update_(sql, param)
-        self.log.info("query_check_item success")
-        return ret
-
     # delete
-    def delete_by_id(self, table_name, id):
+    def delete_by_ids(self, table_name, ids):
         sql = DBContract.CONTRACTS[table_name].SQL_DELETE_BY_ID
-        param = {DBContract.CONTRACTS[table_name].KW_ID: id}
-        self._delete_(sql, param)
+        param = []
+        for id_ in ids:
+            param += [{DBContract.CONTRACTS[table_name].KW_ID: id_}]
+
+        self._delete_(sql, param, many=True)
         self.log.info("delete success")
 
-    # TODO refactor
     def query_tables(self):
-        sql = "SELECT name FROM SQLITE_MASTER WHERE type='table'"
+        sql = "SELECT name FROM SQLITE_MASTER WHERE TYPE='table'"
         rows = self._query_(sql, None).fetchall()
         return [row[0] for row in rows]

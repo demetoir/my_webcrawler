@@ -80,7 +80,7 @@ def test_04_query_limit():
     limit_number = 10
 
     # query limit
-    rows = db_helper.query_limit(table_name, limit_number).fetchall()
+    rows = db_helper.query_all(table_name, limit=limit_number).fetchall()
 
     # assertion query all
     if len(rows) == 0:
@@ -89,29 +89,46 @@ def test_04_query_limit():
 
 
 @with_setup(setup_func, teardown_func)
-def test_05_query_checked_item():
+def test_05_update_is_check():
     db_helper = DbHelper()
     table_name = NewFeedContract.TABLE_NAME
+    idx = NewFeedContract.IDX_IS_CHECKED
 
     # get check id, old row
     check_id = -1
     old_row = None
-    rows = db_helper.query_limit(table_name, 1)
+    rows = db_helper.query_all(table_name, limit=1)
     for i in rows:
         check_id = i[NewFeedContract.IDX_ID]
         old_row = i
 
     # check
-    db_helper.query_check_item(table_name, check_id)
+    db_helper.update_is_check(table_name, check_id, 1)
 
-    # print all
+    # get new row
     new_row = None
-    rows = db_helper.query_limit(table_name, 1)
+    rows = db_helper.query_all(table_name, limit=1)
     for i in rows:
         new_row = i
 
-    # assertion query checked item
-    if old_row == new_row:
+    # assertion is_check == 1
+    if old_row != new_row and new_row[idx] != 1:
+        print("check id = %d" % check_id)
+        print("old_row", old_row)
+        print("new_row", new_row)
+        raise AssertionError
+
+    # uncheck
+    db_helper.update_is_check(table_name, check_id, 0)
+
+    # get new row
+    new_row = None
+    rows = db_helper.query_all(table_name, limit=1)
+    for i in rows:
+        new_row = i
+
+    # assertion is_check == 0
+    if old_row == new_row and new_row[idx] != 0:
         print("check id = %d" % check_id)
         print("old_row", old_row)
         print("new_row", new_row)
@@ -120,51 +137,11 @@ def test_05_query_checked_item():
 
 @with_setup(setup_func, teardown_func)
 def test_06_query_unchecked_item():
-    db_helper = DbHelper()
-    table_name = NewFeedContract.TABLE_NAME
-
-    # get check id
-    check_id = -1
-    rows = db_helper.query_limit(table_name, 1)
-    for i in rows:
-        check_id = i[0]
-
-    # query check item
-    db_helper.query_check_item(table_name, check_id)
-
-    # get old row
-    old_row = None
-    rows = db_helper.query_limit(table_name, 1).fetchall()
-    for i in rows:
-        old_row = i
-
-    # assertion query check item
-    if old_row[NewFeedContract.IDX_IS_CHECKED] != 1:
-        print("check id = %d" % check_id)
-        print("old_row", old_row)
-        print("check item fail")
-        raise AssertionError
-
-    # uncheck item
-    db_helper.query_uncheck_item(table_name, check_id)
-
-    # get new row
-    new_row = None
-    rows = db_helper.query_limit(table_name, 1).fetchall()
-    for i in rows:
-        new_row = i
-
-    # assertion query uncheck item
-    if old_row == new_row:
-        print("check id = %d" % check_id)
-        print("old_row", old_row)
-        print("new_row", new_row)
-        print("uncheck item fail")
-        raise AssertionError
+    pass
 
 
 @with_setup(setup_func, teardown_func)
-def test_07_delete_by_id():
+def test_07_delete_by_ids():
     db_helper = DbHelper()
     table_name = NewFeedContract.TABLE_NAME
 
@@ -172,26 +149,30 @@ def test_07_delete_by_id():
     rows = db_helper.query_all(table_name).fetchall()
     old_row_count = len(rows)
 
-    # get delete item id
-    delete_id = -1
-    cursor = db_helper.query_limit(table_name, 1)
+    # get delete item ids
+    delete_number = 10
+    delete_ids = []
+    cursor = db_helper.query_all(table_name, limit=delete_number)
     for row in cursor:
-        delete_id = row[NewFeedContract.IDX_ID]
+        delete_ids += [row[NewFeedContract.IDX_ID]]
 
     # delete by id
-    db_helper.delete_by_id(table_name, delete_id)
+    db_helper.delete_by_ids(table_name, delete_ids)
 
     # get new row count
     rows = db_helper.query_all(table_name).fetchall()
     new_row_count = len(rows)
 
-    # assertion
+    # assertion delete by ids
+    if new_row_count != old_row_count - delete_number:
+        print("delete id")
+        for id_ in delete_ids:
+            print(id_)
+        print()
 
-    if new_row_count != old_row_count - 1:
-        print("delete id =", delete_id)
         print("old_row_count =", old_row_count)
         print("new_row_count =", new_row_count)
-        print("delete by id fail")
+        print("delete by ids fail")
         raise AssertionError
 
 
@@ -202,13 +183,13 @@ def test_08_query_by_urls():
     idx_url = NewFeedContract.IDX_URL
 
     # get urls
-    old_rows = db_helper.query_limit(table_name, 10).fetchall()
+    old_rows = db_helper.query_all(table_name, limit=10).fetchall()
     urls = []
     for row in old_rows:
         urls += [row[idx_url]]
 
     # query by urls
-    new_rows = db_helper.query_by_urls(table_name, urls)
+    new_rows = db_helper.query_by_urls(table_name, urls).fetchall()
     query_urls = []
     for row in new_rows:
         query_urls += [row[idx_url]]
