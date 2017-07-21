@@ -8,8 +8,8 @@ def clean_up():
         shutil.rmtree(DBContract.DB_PATH)
 
 
-def print_table(cursor):
-    for i in cursor:
+def print_table(rows):
+    for i in rows:
         print(i)
 
 
