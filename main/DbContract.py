@@ -73,6 +73,10 @@ class NewFeedContract(object):
         'VALUES ( %s, %s, %s, %s, 0)' % (PH_URL, PH_SITE_NAME, PH_TITLE, PH_CATEGORY)
     ])
 
+    SQL_LIMIT = join_str([
+        ' LIMIT %s' % PH_LIMIT_NUMBER
+    ])
+
     # query
     SQL_QUERY_ALL = join_str([
         'SELECT *',
@@ -80,23 +84,15 @@ class NewFeedContract(object):
         'ORDER BY %s desc' % COL_URL
     ])
 
-    SQL_QUERY_LIMIT = join_str([
-        'SELECT *',
-        'FROM %s' % TABLE_NAME,
-        'ORDER BY %s desc' % COL_URL,
-        'limit %s' % PH_LIMIT_NUMBER
-    ])
-
-    # todo
     SQL_QUERY_BY_URL = join_str([
         'SELECT *',
         'FROM %s' % TABLE_NAME,
-        'WHERE %s = %s' % (COL_URL, PH_URL),
+        'WHERE %s in ( %s)' % (COL_URL, '%s'),
         'ORDER BY %s desc' % COL_URL
     ])
 
     # TODO test
-    SQL_QUERY_BY_UNCHECKED_ALL = join_str([
+    SQL_QUERY_BY_UNCHECKED = join_str([
         'SELECT *',
         'FROM %s' % TABLE_NAME,
         'WHERE %s = 0' % PH_IS_CHECKED,
@@ -104,45 +100,21 @@ class NewFeedContract(object):
     ])
 
     # TODO test
-    SQL_QUERY_UNCHECKED_LIMIT = join_str([
+    SQL_QUERY_BY_CHECKED = join_str([
         'SELECT *',
         'FROM %s' % TABLE_NAME,
-        'WHERE %s = 0' % PH_IS_CHECKED,
-        'ORDER BY %s desc' % COL_URL,
-        'LIMIT %s' % PH_LIMIT_NUMBER
-    ])
-
-    # TODO test
-    SQL_QUERY_CHECKED_ALL = join_str([
-        'SELECT *',
-        'FROM', TABLE_NAME,
-        'WHERE', 'COL_IS_CHECKED', '= 1',
-        'ORDER BY', COL_ID
-    ])
-
-    # TODO test
-    SQL_QUERY_CHECKED_LIMIT = join_str([
-        'SELECT *',
-        'FROM', TABLE_NAME,
-        'WHERE', COL_IS_CHECKED, '= 1',
-        'LIMIT', PH_LIMIT_NUMBER,
-        'ORDER BY', COL_ID
+        'WHERE %s = 1' % PH_IS_CHECKED,
+        'ORDER BY %s desc' % COL_URL
     ])
 
     # update item
-    SQL_CHECK_ITEM = join_str([
+    SQL_UPDATE_CHECK_ITEM = join_str([
         'UPDATE %s' % TABLE_NAME,
-        'SET %s = 1' % COL_IS_CHECKED,
+        'SET %s = %s' % (COL_IS_CHECKED, PH_IS_CHECKED),
         'WHERE %s = %s' % (COL_ID, PH_ID)
     ])
 
-    SQL_UNCHECK_ITEM = join_str([
-        'UPDATE %s' % TABLE_NAME,
-        'SET %s = 0' % COL_IS_CHECKED,
-        'WHERE %s = %s' % (COL_ID, PH_ID)
-    ])
-
-    # delete item
+    # delete
     SQL_DELETE_BY_ID = join_str([
         "DELETE",
         "FROM %s" % TABLE_NAME,
