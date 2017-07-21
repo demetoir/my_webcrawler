@@ -5,7 +5,6 @@ from main.logger import Logger
 import os
 
 
-# TODO need to practice logging module
 class DbHelper(object):
     MAX_QUERY_PAGE = 5
 
@@ -46,16 +45,15 @@ class DbHelper(object):
         try:
             with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
                 if param is not None:
-                    rows = conn.execute(sql, param)
+                    cursor = conn.execute(sql, param)
                 else:
-                    rows = conn.execute(sql)
+                    cursor = conn.execute(sql)
 
         except sqlite3.Error as e:
             self.log.error(e)
             raise e
 
-        self.log.info("query success")
-        return rows
+        return cursor
 
     def _insert_(self, sql, param=None):
         try:
@@ -70,9 +68,6 @@ class DbHelper(object):
             self.log.error(e)
             return False
 
-        self.log.info("insert success")
-        return True
-
     def _insert_many_(self, sql, param_list):
         try:
             with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
@@ -82,46 +77,93 @@ class DbHelper(object):
             self.log.error(e)
             raise e
 
-        self.log.info("insert_many success, %d done" % len(param_list))
+    def _update_(self, sql, param=None):
+        try:
+            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
+                if param is not None:
+                    conn.execute(sql, param)
+                else:
+                    conn.execute(sql)
+
+                conn.commit()
+        except sqlite3.Error as e:
+            self.log.error(e)
+            return False
+
+        return True
+
+    def _delete_(self, sql, param=None):
+        try:
+            with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
+                if param is not None:
+                    conn.execute(sql, param)
+                else:
+                    conn.execute(sql)
+
+                conn.commit()
+        except sqlite3.Error as e:
+            self.log.error(e)
+            return False
+
         return True
 
     # query
-    def query_all(self, contract_name):
-        sql = self.contracts[contract_name].SQL_QUERY_ALL
-        return self._query_(sql, None)
+    def query_all(self, table_name):
+        sql = self.contracts[table_name].SQL_QUERY_ALL
+        ret = self._query_(sql, None)
+        self.log.info("query_all success")
+        return ret
 
-    # TODO test
-    def query_limit(self, contract_name, max_query_item=MAX_QUERY_PAGE):
-        sql = self.contracts[contract_name].SQL_QUERY_LIMIT
+    def query_limit(self, table_name, max_query_item=MAX_QUERY_PAGE):
+        sql = self.contracts[table_name].SQL_QUERY_LIMIT
         param = {NewFeedContract.KW_LIMIT_NUMBER: max_query_item}
-        return self._query_(sql, param)
+        ret = self._query_(sql, param)
+        self.log.info("query_limit success")
+        return ret
 
-    # TODO test
-    def query_uncheck_item(self, contract_name, item_id):
-        sql = self.contracts[contract_name].SQL_UNCHECK_ITEM
-        param = {self.contracts[contract_name].PLACEHOLDER_ID: item_id}
-        return self._query_(sql, param)
-
-    # TODO test
-    def query_check_item(self, contract_name, item_id):
-        sql = self.contracts[contract_name].SQL_CHECK_ITEM
-        param = {self.contracts[contract_name].PLACEHOLDER_ID: item_id}
-        return self._query_(sql, param)
+    def query_url(self, table_name, url):
+        sql = DBContract.CONTRACTS[table_name].SQL_QUERY_BY_URL
+        param = {DBContract.CONTRACTS[table_name].KW_URL: url}
+        ret = self._query_(sql, param)
+        self.log.info("query_url success")
+        return ret
 
     # insert
-    def insert_items(self, contract_name, items):
-        sql = self.contracts[contract_name].SQL_INSERT
-        return self._insert_many_(sql, items)
+    def insert_items(self, table_name, items):
+        # TODO optimize
+        filtered_items = []
+        for item in items:
+            url = item[DBContract.CONTRACTS[table_name].KW_URL]
+            rows = self.query_url(table_name, url).fetchall()
+            if len(rows) == 0:
+                filtered_items += [item]
 
-    # util
-    @staticmethod
-    def print_all(contract_name):
-        with sqlite3.connect(DBContract.DB_NAME) as conn:
-            cur = conn.execute()
+        sql = self.contracts[table_name].SQL_INSERT
+        self._insert_many_(sql, filtered_items)
+        self.log.info("insert %d items success" % len(filtered_items))
+        return len(filtered_items)
 
-        for col in cur:
-            print(col)
-        print()
+    # update
+    def query_uncheck_item(self, table_name, item_id):
+        sql = self.contracts[table_name].SQL_UNCHECK_ITEM
+        param = {self.contracts[table_name].KW_ID: item_id}
+        ret = self._update_(sql, param)
+        self.log.info("query_uncheck_item success")
+        return ret
+
+    def query_check_item(self, table_name, item_id):
+        sql = self.contracts[table_name].SQL_CHECK_ITEM
+        param = {self.contracts[table_name].KW_ID: item_id}
+        ret = self._update_(sql, param)
+        self.log.info("query_check_item success")
+        return ret
+
+    # delete
+    def delete_by_id(self, table_name, id):
+        sql = DBContract.CONTRACTS[table_name].SQL_DELETE_BY_ID
+        param = {DBContract.CONTRACTS[table_name].KW_ID: id}
+        self._delete_(sql, param)
+        self.log.info("delete success")
 
     # TODO refactor
     def get_tables(self):

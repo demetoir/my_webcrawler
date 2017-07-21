@@ -9,7 +9,6 @@ import os
 # http://ourcstory.tistory.com/105
 # TODO change to singleton
 # TODO more comment
-# TODO 여러개 찍히는거 수정..?
 class Logger(object):
     LOG_FOLDER_NAME = 'log'
     LOG_PATH = path.join('.', LOG_FOLDER_NAME)
