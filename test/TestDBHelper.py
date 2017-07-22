@@ -95,43 +95,58 @@ def test_05_update_is_check():
     idx = NewFeedContract.IDX_IS_CHECKED
 
     # get check id, old row
-    check_id = -1
-    old_row = None
-    rows = db_helper.query_all(table_name, limit=1)
-    for i in rows:
-        check_id = i[NewFeedContract.IDX_ID]
-        old_row = i
+    check_ids = []
+    old_rows = db_helper.query_all(table_name, limit=10).fetchall()
+    for row in old_rows:
+        check_ids += [row[NewFeedContract.IDX_ID]]
 
-    # check
-    db_helper.update_is_check(table_name, check_id, 1)
+    db_helper.update_is_check(table_name, check_ids, 1)
 
     # get new row
-    new_row = None
-    rows = db_helper.query_all(table_name, limit=1)
-    for i in rows:
-        new_row = i
+    rows = db_helper.query_all(table_name, limit=10).fetchall()
 
     # assertion is_check == 1
-    if old_row != new_row and new_row[idx] != 1:
-        print("check id = %d" % check_id)
-        print("old_row", old_row)
-        print("new_row", new_row)
+    fine = True
+    if not (len(rows) == 10):
+        fine = False
+    for row in rows:
+        if row[NewFeedContract.IDX_IS_CHECKED] == 0:
+            fine = False
+
+    if not fine:
+        print("update_is_check is_checked = 1 limit = 10 fail")
+        print("rows len =", len(rows))
+
+        print('rows')
+        for row in rows:
+            print(row)
+        print()
+
         raise AssertionError
 
     # uncheck
-    db_helper.update_is_check(table_name, check_id, 0)
+    db_helper.update_is_check(table_name, check_ids, 0)
 
     # get new row
-    new_row = None
-    rows = db_helper.query_all(table_name, limit=1)
-    for i in rows:
-        new_row = i
+    rows = db_helper.query_all(table_name, limit=10).fetchall()
 
-    # assertion is_check == 0
-    if old_row == new_row and new_row[idx] != 0:
-        print("check id = %d" % check_id)
-        print("old_row", old_row)
-        print("new_row", new_row)
+    # assertion
+    fine = True
+    if not (len(rows) == 10):
+        fine = False
+    for row in rows:
+        if row[NewFeedContract.IDX_IS_CHECKED] == 1:
+            fine = False
+
+    if not fine:
+        print("update_is_check is_checked = 0 limit = 10 fail")
+        print("rows len =", len(rows))
+
+        print('rows')
+        for row in rows:
+            print(row)
+        print()
+
         raise AssertionError
 
 
@@ -189,19 +204,19 @@ def test_08_query_by_urls():
         urls += [row[idx_url]]
 
     # query by urls
-    new_rows = db_helper.query_by_urls(table_name, urls).fetchall()
+    new_rows = db_helper.query_by_urls(table_name, urls, limit=5).fetchall()
     query_urls = []
     for row in new_rows:
         query_urls += [row[idx_url]]
 
     # assertion
     fine = True
-    for url in urls:
-        if url not in query_urls:
+    for url in query_urls:
+        if url not in urls:
             fine = False
             break
 
-    if not fine:
+    if not fine or len(new_rows) != 5:
         print('old_rows')
         util.print_table(old_rows)
         print()
@@ -221,5 +236,60 @@ def test_08_query_by_urls():
         print()
 
         raise AssertionError
+
+
+@with_setup(setup_func, teardown_func)
+def test_09_query_by_is_checked():
+    db_helper = DbHelper()
+    table = NewFeedContract.TABLE_NAME
+    idx = NewFeedContract.IDX_IS_CHECKED
+
+    # get total_row_count
+    rows = db_helper.query_all(table, ).fetchall()
+    total_row_count = len(rows)
+
+    # set 10 row is_check to 1
+    rows = db_helper.query_all(table, limit=10).fetchall()
+    ids = [row[DBContract.CONTRACTS[table].IDX_ID] for row in rows]
+    db_helper.update_is_check(table, ids, 1)
+
+    # query is check = 1
+    rows = db_helper.query_by_is_checked(table, 1).fetchall()
+
+    if not (len(rows) == 10):
+        print("query_by_is_checked fail")
+        print("rows len expect %d" % 10)
+        print("rows len =", len(rows))
+        raise AssertionError
+
+    # query is checked = 0
+    rows = db_helper.query_by_is_checked(table, 0).fetchall()
+
+    if not (len(rows) == total_row_count - 10):
+        print("query_by_is_checked fail")
+        print("rows len expect %d" % (total_row_count - 10))
+        print("rows len =", len(rows))
+        raise AssertionError
+
+    # query is checked = 1 limit = 5
+    rows = db_helper.query_by_is_checked(table, 1, 5).fetchall()
+
+    if not (len(rows) == 5):
+        print("query_by_is_checked fail")
+        print("rows len expect %d" % 5)
+        print("rows len =", len(rows))
+        raise AssertionError
+
+    # query is checked = 0 limit = 5
+    rows = db_helper.query_by_is_checked(table, 0, 5).fetchall()
+
+    if not (len(rows) == 5):
+        print("query_by_is_checked fail")
+        print("rows len expect %d" % 5)
+        print("rows len =", len(rows))
+        raise AssertionError
+
+    # uncheck
+    db_helper.update_is_check(table, ids, 0)
 
 # end

@@ -1,17 +1,15 @@
 import requests
 from bs4 import BeautifulSoup as bs
 
-from main.Tag import Tag
 from main.DbContract import *
 from main.logger import Logger
-
+from main.Tag import Tag
 HTML_PARSER = 'lxml'
 
 
 class Parser(object):
     def __init__(self):
         self.log = Logger(self.__class__.__name__).log
-
         pass
 
     def parse_ruliweb(self, url):

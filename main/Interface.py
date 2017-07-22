@@ -19,16 +19,17 @@ class Interface(object):
 URL_SITE = """http://bbs.ruliweb.com/best/humor?&page=%d"""
 
 if __name__ == '__main__':
-    parser = CrawlerParser()
-    # delay = Delay()
-    dbHelper = CrawlerDbHelper()
-
-    l = []
-    for i in range(1, 5):
-        res = parser.ruliweb_parser(URL_SITE % i)
-        # delay.delay()
-        l += res
-
-
-    for i in l:
-        print(i)
+    # parser = CrawlerParser()
+    # # delay = Delay()
+    # dbHelper = CrawlerDbHelper()
+    #
+    # l = []
+    # for i in range(1, 5):
+    #     res = parser.ruliweb_parser(URL_SITE % i)
+    #     # delay.delay()
+    #     l += res
+    #
+    #
+    # for i in l:
+    #     print(i)
+    pass

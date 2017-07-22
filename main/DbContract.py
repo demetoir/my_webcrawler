@@ -91,19 +91,10 @@ class NewFeedContract(object):
         'ORDER BY %s desc' % COL_URL
     ])
 
-    # TODO test
-    SQL_QUERY_BY_UNCHECKED = join_str([
+    SQL_QUERY_BY_IS_CHECKED = join_str([
         'SELECT *',
         'FROM %s' % TABLE_NAME,
-        'WHERE %s = 0' % PH_IS_CHECKED,
-        'ORDER BY %s desc' % COL_URL
-    ])
-
-    # TODO test
-    SQL_QUERY_BY_CHECKED = join_str([
-        'SELECT *',
-        'FROM %s' % TABLE_NAME,
-        'WHERE %s = 1' % PH_IS_CHECKED,
+        'WHERE %s = %s' % (COL_IS_CHECKED, PH_IS_CHECKED),
         'ORDER BY %s desc' % COL_URL
     ])
 
@@ -170,8 +161,9 @@ class DBContract(object):
     DB_FULL_PATH = path.join('.', DB_FOLDER_NAME, DB_NAME)
     DB_PATH = path.join('.', DB_FOLDER_NAME)
 
-    # DB each table's contracts
     # TODO change to automatically apply when db schema changed
+    pass
+    # DB each table's contracts
     CONTRACTS = {
         NewFeedContract.TABLE_NAME: NewFeedContract,
         LastFeedContract.TABLE_NAME: LastFeedContract

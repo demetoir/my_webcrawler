@@ -1,6 +1,7 @@
 from main.DbContract import NewFeedContract
 from main.Parser import Parser
 from main import util
+from main.Tag import Tag
 
 URL_SITE = """http://bbs.ruliweb.com/best/humor?&page=%d"""
 
