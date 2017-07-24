@@ -1,5 +1,3 @@
-
-
 # import time
 # import random
 #
@@ -13,6 +11,24 @@
 
 class Interface(object):
     def __init__(self):
+        pass
+
+    def init_db(self):
+        pass
+
+    def update_db(self):
+        pass
+
+    def get_new_feed(self):
+        pass
+
+    def get_website(self):
+        pass
+
+    def delete_feed(self):
+        pass
+
+    def check_feed(self):
         pass
 
 

@@ -43,3 +43,9 @@ class Parser(object):
     @staticmethod
     def parse_int(string):
         return "".join(filter(lambda c: chr(ord(c)).isnumeric(), string))
+
+
+
+
+
+

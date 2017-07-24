@@ -5,6 +5,10 @@ from main.logger import Logger
 import os
 
 
+def get_post_number(s):
+    return int(str(s).split('/')[-1])
+
+
 class DbHelper(object):
     MAX_QUERY_PAGE = 5
 
@@ -74,13 +78,20 @@ class DbHelper(object):
         key = NewFeedContract.PH_URL
         insert_urls = [item[key] for item in items]
 
-        # get exist_urls
-        rows = self.query_new_feed_by_urls(insert_urls).fetchall()
-        idx = NewFeedContract.IDX_URL
-        exist_urls = [row[idx] for row in rows]
-
-        # get filtered_items
-        filtered_items = [item for item in items if item[key] not in exist_urls]
+        # get last feed url and filter items
+        website_id = items[0][NewFeedContract.PH_WEBSITE_ID]
+        rows = self.query_website_by_id(website_id).fetchall()
+        last_feed_url = rows[0][WebSiteContract.IDX_LAST_FEED_URL]
+        if last_feed_url is None:
+            filtered_items = items
+        else:
+            filtered_items = []
+            for item in items:
+                print(get_post_number(item[NewFeedContract.PH_URL]))
+                print(get_post_number(last_feed_url))
+                if get_post_number(item[NewFeedContract.PH_URL]) <= get_post_number(last_feed_url):
+                    break
+                filtered_items += [item]
 
         # insert filtered_items
         sql = NewFeedContract.SQL_INSERT
@@ -124,9 +135,14 @@ class DbHelper(object):
         self.log.info("query_uncheck_item success")
         return ret
 
-    # todo test
-    def update_website_(self, ids, value):
-        pass
+    def update_website_last_feed_url(self, id_, url):
+        sql = WebSiteContract.SQL_UPDATE_LAST_FEED_URL
+        param = {WebSiteContract.PH_ID: id_,
+                 WebSiteContract.PH_LAST_FEED_URL: url}
+
+        self._update_(sql, param)
+        self.log.info('update_website_last_feed_url')
+        return
 
     # delete
     def delete_new_feed(self, ids):
@@ -217,7 +233,27 @@ class DbHelper(object):
         self.log.info("query_by_is_checked success")
         return ret
 
+    def query_new_feed_by_website_id(self, website_id, limit=-1):
+        sql = NewFeedContract.SQL_QUERY_BY_WEBSITE_ID
+        params = {NewFeedContract.PH_WEBSITE_ID: website_id}
+
+        if limit != -1:
+            sql = ' '.join([sql, NewFeedContract.SQL_LIMIT])
+            params[NewFeedContract.PH_LIMIT_NUMBER] = limit
+
+        ret = self._query_(sql, params)
+        self.log.info('query_new_feed_by_website_id')
+        return ret
+
     def query_tables(self):
         sql = "SELECT name FROM SQLITE_MASTER WHERE TYPE='table'"
         rows = self._query_(sql, None).fetchall()
         return [row[0] for row in rows]
+
+    def query_website_by_id(self, id_):
+        sql = WebSiteContract.SQL_QUERY_BY_ID
+        param = {WebSiteContract.PH_ID: id_}
+
+        ret = self._query_(sql, param)
+        self.log.info('query_website_by_id')
+        return ret

@@ -4,21 +4,30 @@ from main.DbHelper import DbHelper
 from main.Parser import Parser
 from main import util
 
-URL_SITE = """http://bbs.ruliweb.com/best/humor?&page=%d"""
-SITE_NAME = """루리웹"""
-CATEGORY = """유머 best"""
+URL_SITE = "http://bbs.ruliweb.com/best/humor?&page=%d"
+SITE_NAME = "루리웹"
+CATEGORY = "best 일반유머"
 
+WEBSITE_LIST = [
+    {WebSiteContract.PH_CATEGORY: "best 일반유머",
+     WebSiteContract.PH_SITE_NAME: "루리웹",
+     WebSiteContract.PH_LAST_FEED_URL: None,
+     WebSiteContract.PH_CRAWLING_URL_FORMAT: "http://bbs.ruliweb.com/best/humor?&page=%d"},
+    {WebSiteContract.PH_CATEGORY: "best 만화/웹툰",
+     WebSiteContract.PH_SITE_NAME: "루리웹",
+     WebSiteContract.PH_LAST_FEED_URL: None,
+     WebSiteContract.PH_CRAWLING_URL_FORMAT: 'http://bbs.ruliweb.com/best/cartoon?&page=%d'},
+]
 
-def update_db(max_page):
+def update_db():
+    max_page = 2
+
     parser = Parser()
     db_helper = DbHelper()
     total_inserted_count = 0
 
     # update website
-    items = [{WebSiteContract.PH_CATEGORY: CATEGORY,
-              WebSiteContract.PH_SITE_NAME: SITE_NAME,
-              WebSiteContract.PH_LAST_FEED_URL: None,
-              WebSiteContract.PH_CRAWLING_URL_FORMAT: URL_SITE}]
+    items = WEBSITE_LIST
     db_helper.insert_website(items)
 
     # get website id
@@ -39,10 +48,20 @@ def update_db(max_page):
         if inserted_count == 0:
             break
 
-    return total_inserted_count
+    # update website table's last feed url
+    rows = db_helper.query_new_feed_by_website_id(website_id, limit=1).fetchall()
+    if len(rows) == 1:
+        url = rows[0][NewFeedContract.IDX_URL]
+        db_helper.update_website_last_feed_url(website_id, url)
+        print(url)
 
+    print("total inserted count =", total_inserted_count)
+    rows = db_helper.query_new_feed().fetchall()
+    # util.print_rows(rows)
 
 def setup_func():
+    util.clean_up()
+    update_db()
     pass
 
 
@@ -62,29 +81,10 @@ def test_01_init_db():
 
 @with_setup(setup_func, teardown_func)
 def test_02_update_db():
-    max_page = 10
-    cnt = update_db(max_page)
-    print("total inserted count =", cnt)
+    update_db()
 
 
-@with_setup(setup_func, teardown_func)
-def test_03_query_website():
-    # insert to db
-    db_helper = DbHelper()
-
-    # query website
-    util.print_rows(db_helper.query_website().fetchall())
-
-    # query limit
-    rows = db_helper.query_website(limit=1).fetchall()
-    util.print_rows(rows)
-    if len(rows) != 1:
-        print('query website limit fail')
-        print('expect value 1')
-        print('value %d' % len(rows))
-        util.print_rows(rows)
-        raise AssertionError
-
+# query new feed table
 
 @with_setup(setup_func, teardown_func)
 def test_03_query_new_feed():
@@ -103,7 +103,7 @@ def test_03_query_new_feed():
 
 
 @with_setup(setup_func, teardown_func)
-def test_03_query_new_feed_by_urls():
+def test_04_query_new_feed_by_urls():
     db_helper = DbHelper()
     idx_url = NewFeedContract.IDX_URL
 
@@ -149,7 +149,26 @@ def test_03_query_new_feed_by_urls():
 
 
 @with_setup(setup_func, teardown_func)
-def test_03_query_by_is_checked():
+def test_05_query_new_feed_by_website_id():
+    db_helper = DbHelper()
+
+    # get website_id
+    rows = db_helper.query_website(limit=1).fetchall()
+    website_id = rows[0][WebSiteContract.IDX_ID]
+
+    print('website_id = ', website_id)
+    util.print_rows(rows)
+
+    rows = db_helper.query_new_feed_by_website_id(website_id, limit=10).fetchall()
+    util.print_rows(rows)
+
+    # assertion
+    # todo implement assertion
+    pass
+
+
+@with_setup(setup_func, teardown_func)
+def test_06_query_new_feed_by_is_checked():
     db_helper = DbHelper()
 
     # get total_row_count
@@ -200,8 +219,65 @@ def test_03_query_by_is_checked():
     db_helper.update_new_feed_is_check(ids, 0)
 
 
+# query website table
+
 @with_setup(setup_func, teardown_func)
-def test_04_update_new_feed_is_check():
+def test_07_query_website():
+    # insert to db
+    db_helper = DbHelper()
+
+    # query website
+    util.print_rows(db_helper.query_website().fetchall())
+
+    # query limit
+    rows = db_helper.query_website().fetchall()
+    util.print_rows(rows)
+    if len(rows) != len(WEBSITE_LIST):
+        print('query website limit fail')
+        print('expect value 1')
+        print('value %d' % len(rows))
+        util.print_rows(rows)
+        raise AssertionError
+
+
+@with_setup(setup_func, teardown_func)
+def test_08_query_website_by_id():
+    db_helper = DbHelper()
+
+    rows = db_helper.query_website().fetchall()
+    old_row = rows[0]
+    id_ = rows[0][WebSiteContract.IDX_ID]
+
+    rows = db_helper.query_website_by_id(id_).fetchall()
+    new_row = rows[0]
+
+    if old_row != new_row:
+        print('id =', id_)
+        print('old_row', old_row)
+        print('new_row', new_row)
+
+    pass
+
+
+@with_setup(setup_func, teardown_func)
+def test_09_query_website_by_site_name_and_category():
+    db_helper = DbHelper()
+
+    rows = db_helper.query_website_by_site_name_and_category(SITE_NAME, CATEGORY).fetchall()
+
+    fine = True
+    for row in rows:
+        if row[WebSiteContract.IDX_SITE_NAME] != SITE_NAME or row[WebSiteContract.IDX_CATEGORY] != CATEGORY:
+            fine = False
+
+    if not fine:
+        util.print_rows(rows)
+
+
+# update
+
+@with_setup(setup_func, teardown_func)
+def test_10_update_new_feed_is_check():
     db_helper = DbHelper()
 
     # get check id, old row
@@ -254,14 +330,37 @@ def test_04_update_new_feed_is_check():
         raise AssertionError
 
 
-# TODO
 @with_setup(setup_func, teardown_func)
-def test_04_update_website___():
-    raise AssertionError
+def test_11_update_website_last_feed_url():
+    db_helper = DbHelper()
+
+    # get update id
+    rows = db_helper.query_website(limit=1).fetchall()
+    update_id = rows[0][WebSiteContract.IDX_ID]
+
+    # magic  url
+    url = 'werwer'
+
+    # update
+    db_helper.update_website_last_feed_url(update_id, url)
+
+    rows = db_helper.query_website_by_id(update_id).fetchall()
+    util.print_rows(rows)
+
+    if rows[0][WebSiteContract.IDX_LAST_FEED_URL] != url:
+        print('update id =', update_id)
+        print('row')
+        print(rows[0])
+
+        print(url)
+
+    pass
 
 
+# delete
+
 @with_setup(setup_func, teardown_func)
-def test_05_delete_new_feed():
+def test_12_delete_new_feed():
     db_helper = DbHelper()
 
     # get old row count
@@ -270,8 +369,9 @@ def test_05_delete_new_feed():
     # get delete item ids
     delete_number = 10
     delete_ids = []
-    cursor = db_helper.query_new_feed(limit=delete_number)
-    for row in cursor:
+    rows = db_helper.query_new_feed(limit=delete_number).fetchall()
+
+    for row in rows:
         delete_ids += [row[NewFeedContract.IDX_ID]]
 
     # delete by id
@@ -295,7 +395,7 @@ def test_05_delete_new_feed():
 
 
 @with_setup(setup_func, teardown_func)
-def test_05_delete_website():
+def test_13_delete_website():
     db_helper = DbHelper()
 
     # get old row count
@@ -304,8 +404,8 @@ def test_05_delete_website():
     # get delete item ids
     delete_number = 1
     delete_ids = []
-    cursor = db_helper.query_website(limit=delete_number)
-    for row in cursor:
+    rows = db_helper.query_website(limit=delete_number).fetchall()
+    for row in rows:
         delete_ids += [row[WebSiteContract.IDX_ID]]
 
     # delete by id
@@ -327,6 +427,10 @@ def test_05_delete_website():
         print("new_row_count =", new_row_count)
         print("delete by ids fail")
         raise AssertionError
+
+    db_helper.insert_website(WEBSITE_LIST)
+    rows = db_helper.query_website().fetchall()
+    util.print_rows(rows)
 
 
 @with_setup(setup_func, teardown_func)

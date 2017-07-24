@@ -35,7 +35,7 @@ class WebSiteContract(object):
     IDX_ID = 0
     IDX_SITE_NAME = 1
     IDX_CATEGORY = 2
-    IDX_NEW_FEED_ID = 3
+    IDX_LAST_FEED_URL = 3
     IDX_CRAWLING_URL_FORMAT = 4
 
     CRAWLING_URL_FORMAT_SIZE = 500
@@ -75,7 +75,8 @@ class WebSiteContract(object):
     SQL_UPDATE_SET_CATEGORY = '%s = %s' % (CATEGORY, WPH_CATEGORY)
     SQL_UPDATE_SET_CRAWLING_URL_FORMAT = '%s = %s' % (
         CRAWLING_URL_FORMAT, WPH_CATEGORY)
-    SQL_UPDATE = ' '.join([
+
+    SQL_UPDATE_LAST_FEED_URL = ' '.join([
         'update %s' % TABLE_NAME,
         'set %s = %s' % (LAST_FEED_URL, WPH_LAST_FEED_URL),
         'where %s = %s' % (ID, WPH_ID)
@@ -94,14 +95,14 @@ class WebSiteContract(object):
     SQL_QUERY_BY_ID = ' '.join([
         'select *',
         'from %s' % TABLE_NAME,
-        'where %s = in (%s)' % (ID, '%s')
+        'where %s = %s' % (ID, WPH_ID)
     ])
 
     SQL_QUERY_BY_SITE_NAME_AND_CATEGORY = ' '.join([
         'select *',
         'from %s' % TABLE_NAME,
-        'where %s = %s' % (SITE_NAME, PH_SITE_NAME),
-        'and %s = %s' % (CATEGORY, PH_CATEGORY)
+        'where %s = %s' % (SITE_NAME, WPH_SITE_NAME),
+        'and %s = %s' % (CATEGORY, WPH_CATEGORY)
     ])
 
 
@@ -201,6 +202,12 @@ class NewFeedContract(object):
         'FROM %s' % TABLE_NAME,
         'WHERE %s = %s' % (IS_CHECKED, WPH_IS_CHECKED),
         SQL_ORDER_BY_URL
+    ])
+
+    SQL_QUERY_BY_WEBSITE_ID = ' '.join([
+        'select *',
+        'from %s' % TABLE_NAME,
+        'where %s = %s' % (WEBSITE_ID, WPH_WEBSITE_ID)
     ])
 
 
