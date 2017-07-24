@@ -30,12 +30,10 @@ class DbHelper(object):
 
         with sqlite3.connect(DBContract.DB_FULL_PATH) as conn:
             # create each table
-            for key in DBContract.CONTRACTS:
-                table_name = DBContract.CONTRACTS[key].TABLE_NAME
-                if table_name not in tables:
-                    sql = DBContract.CONTRACTS[key].SQL_CREATE_TABLE
-                    conn.execute(sql)
-                    self.log.info('%s created' % table_name)
+            for contract in DBContract.CONTRACTS:
+                if contract.TABLE_NAME not in tables:
+                    conn.execute(contract.SQL_CREATE_TABLE)
+                    self.log.info('%s table created' % contract.TABLE_NAME)
 
     def _execute_(self, sql, param=None, commit=False, many=False):
         try:
@@ -71,96 +69,151 @@ class DbHelper(object):
         return self._execute_(sql, param, commit=True, many=many)
 
     # insert
-    def insert_items(self, table, items):
-        # todo hack, optimize
-        pass
-
+    def insert_new_feed(self, items):
         # get insert urls
-        key = DBContract.CONTRACTS[table].KW_URL
+        key = NewFeedContract.PH_URL
         insert_urls = [item[key] for item in items]
 
         # get exist_urls
-        rows = self.query_by_urls(table, insert_urls).fetchall()
-        idx = DBContract.CONTRACTS[table].IDX_URL
+        rows = self.query_new_feed_by_urls(insert_urls).fetchall()
+        idx = NewFeedContract.IDX_URL
         exist_urls = [row[idx] for row in rows]
 
         # get filtered_items
         filtered_items = [item for item in items if item[key] not in exist_urls]
 
         # insert filtered_items
-        sql = DBContract.CONTRACTS[table].SQL_INSERT
+        sql = NewFeedContract.SQL_INSERT
+        self._insert_(sql, filtered_items, many=True)
+        self.log.info("insert %d items success" % len(filtered_items))
+        return len(filtered_items)
+
+    def insert_website(self, items):
+        # get insert site name, category
+        query_items = []
+        for item in items:
+            query_items += [{WebSiteContract.PH_SITE_NAME: item[WebSiteContract.PH_SITE_NAME],
+                             WebSiteContract.PH_CATEGORY: item[WebSiteContract.PH_CATEGORY]}]
+
+        # get filtered items
+        filtered_items = []
+        for item in items:
+            site_name = item[WebSiteContract.PH_SITE_NAME]
+            category = item[WebSiteContract.PH_CATEGORY]
+            rows = self.query_website_by_site_name_and_category(site_name, category).fetchall()
+            if len(rows) == 0:
+                filtered_items += [item]
+
+        # insert filtered_items
+        sql = WebSiteContract.SQL_INSERT
         self._insert_(sql, filtered_items, many=True)
         self.log.info("insert %d items success" % len(filtered_items))
         return len(filtered_items)
 
     # update
-    def update_is_check(self, table, ids, value):
-        sql = DBContract.CONTRACTS[table].SQL_UPDATE_CHECK_ITEM
+    def update_new_feed_is_check(self, ids, value):
+        sql = NewFeedContract.SQL_UPDATE_IS_CHECK
         params = []
         for id_ in ids:
             params += [{
-                DBContract.CONTRACTS[table].KW_ID: id_,
-                DBContract.CONTRACTS[table].KW_IS_CHECKED: value
+                NewFeedContract.PH_ID: id_,
+                NewFeedContract.PH_IS_CHECKED: value
             }]
 
         ret = self._update_(sql, params, many=True)
         self.log.info("query_uncheck_item success")
         return ret
 
+    # todo test
+    def update_website_(self, ids, value):
+        pass
+
     # delete
-    def delete_by_ids(self, table_name, ids):
-        sql = DBContract.CONTRACTS[table_name].SQL_DELETE_BY_ID
+    def delete_new_feed(self, ids):
+        sql = NewFeedContract.SQL_DELETE
         param = []
         for id_ in ids:
-            param += [{DBContract.CONTRACTS[table_name].KW_ID: id_}]
+            param += [{NewFeedContract.PH_ID: id_}]
 
         self._delete_(sql, param, many=True)
-        self.log.info("delete success")
+        self.log.info("%s delete %d" % (NewFeedContract.TABLE_NAME, len(ids)))
+
+    def delete_website(self, ids):
+        sql = WebSiteContract.SQL_DELETE
+        param = []
+        for id_ in ids:
+            param += [{WebSiteContract.PH_ID: id_}]
+
+        self._delete_(sql, param, many=True)
+        self.log.info("%s delete %d" % (WebSiteContract.TABLE_NAME, len(ids)))
 
     # query
-    def query_all(self, table, limit=-1):
-        sql = DBContract.CONTRACTS[table].SQL_QUERY_ALL
-        if limit == -1:
-            ret = self._query_(sql, None)
-        else:
-            sql += DBContract.CONTRACTS[table].SQL_LIMIT
-            param = {NewFeedContract.KW_LIMIT_NUMBER: limit}
-            ret = self._query_(sql, param)
+    def query_website(self, limit=-1):
+        sql = WebSiteContract.SQL_QUERY
+        params = {}
 
+        if limit != -1:
+            sql = " ".join([sql, WebSiteContract.SQL_LIMIT])
+            params[WebSiteContract.PH_LIMIT_NUMBER] = limit
+
+        ret = self._query_(sql, params)
         self.log.info("query_all success")
         return ret
 
-    def query_by_urls(self, table, urls, limit=-1):
-        # TODO hack
-        # build sql statement and param
-        kw = DBContract.CONTRACTS[table].KW_IS_CHECKED
-        kw_list = [kw + str(i) for i in range(len(urls))]
-        ph_list = [':' + kw + str(i) for i in range(len(urls))]
-        str_ph = ','.join(ph_list)
-        sql = DBContract.CONTRACTS[table].SQL_QUERY_BY_URL % str_ph
-        param = {ph: url for ph, url in zip(kw_list, urls)}
+    def query_website_by_site_name_and_category(self, site_name, category, limit=-1):
+        sql = WebSiteContract.SQL_QUERY_BY_SITE_NAME_AND_CATEGORY
+        param = {WebSiteContract.PH_SITE_NAME: site_name,
+                 WebSiteContract.PH_CATEGORY: category}
 
-        if limit == -1:
-            ret = self._query_(sql, param)
-        else:
-            # add limit statement and param
-            sql += DBContract.CONTRACTS[table].SQL_LIMIT
-            param[DBContract.CONTRACTS[table].KW_LIMIT_NUMBER] = limit
-            ret = self._query_(sql, param)
-            pass
-        self.log.info("query_by_urls success")
+        if limit != -1:
+            sql = " ".join([sql, WebSiteContract.SQL_LIMIT])
+            param[WebSiteContract.PH_LIMIT_NUMBER] = limit
+
+        ret = self._query_(sql, param)
+        self.log.info("query_website_by_site_name_and_category")
         return ret
 
-    def query_by_is_checked(self, table, value, limit=-1):
-        sql = DBContract.CONTRACTS[table].SQL_QUERY_BY_IS_CHECKED
-        param = {DBContract.CONTRACTS[table].KW_IS_CHECKED: value}
-        if limit == -1:
-            ret = self._query_(sql, param)
-        else:
-            sql += DBContract.CONTRACTS[table].SQL_LIMIT
-            param[DBContract.CONTRACTS[table].KW_LIMIT_NUMBER] = limit
-            ret = self._query_(sql, param)
+    def query_new_feed(self, limit=-1):
+        sql = NewFeedContract.SQL_QUERY
 
+        param = {}
+        if limit != -1:
+            sql = " ".join([sql, NewFeedContract.SQL_LIMIT])
+            param[NewFeedContract.PH_LIMIT_NUMBER] = limit
+
+        ret = self._query_(sql, param)
+        self.log.info("query_all success")
+        return ret
+
+    def query_new_feed_by_urls(self, urls, limit=-1):
+        # TODO hack
+        # build sql
+        ph = NewFeedContract.PH_IS_CHECKED
+        str_wph = ','.join([':' + ph + str(i) for i in range(len(urls))])
+        sql = NewFeedContract.SQL_QUERY_BY_URL % str_wph
+
+        # build params
+        ph_list = [ph + str(i) for i in range(len(urls))]
+        params = {ph: url for ph, url in zip(ph_list, urls)}
+
+        # add limit
+        if limit != -1:
+            sql = " ".join([sql, NewFeedContract.SQL_LIMIT])
+            params[NewFeedContract.PH_LIMIT_NUMBER] = limit
+
+        ret = self._query_(sql, params)
+        self.log.info("%s query_by_urls success" % NewFeedContract.TABLE_NAME)
+        return ret
+
+    def query_new_feed_by_is_checked(self, value, limit=-1):
+        sql = NewFeedContract.SQL_QUERY_BY_IS_CHECKED
+        params = {NewFeedContract.PH_IS_CHECKED: value}
+
+        if limit != -1:
+            sql = " ".join([sql, NewFeedContract.SQL_LIMIT])
+            params[NewFeedContract.PH_LIMIT_NUMBER] = limit
+
+        ret = self._query_(sql, params)
         self.log.info("query_by_is_checked success")
         return ret
 

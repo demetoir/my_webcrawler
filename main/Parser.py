@@ -29,7 +29,7 @@ class Parser(object):
             ret = []
 
             for url_, title in zip(url_list, title_list):
-                ret += [{NewFeedContract.KW_TITLE: title, NewFeedContract.KW_URL: url_}]
+                ret += [{NewFeedContract.PH_TITLE: title, NewFeedContract.PH_URL: url_}]
 
             self.log.info('parse success url = %s' % url)
 

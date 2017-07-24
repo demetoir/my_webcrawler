@@ -1,17 +1,108 @@
 from os import path
 
+
 # util lambda
 # make name string formatter
-wrap_nf = lambda x: ':' + x.lower()
+def wrap(s):
+    return ':' + s
 
-# string join for sql statement
-join_str = lambda x: " ".join(x)
 
-# TODO need refactor
-URL_SIZE = 500
-TITLE_SIZE = 200
-CATEGORY_SIZE = 200
-SITE_NAME_SIZE = 60
+class WebSiteContract(object):
+    # table name
+    TABLE_NAME = 'LAST_FEED_TABLE'
+
+    ID = 'ID'
+    SITE_NAME = 'SITE_NAME'
+    CATEGORY = 'CATEGORY'
+    LAST_FEED_URL = 'LAST_FEED_URL'
+    CRAWLING_URL_FORMAT = 'CRAWLING_URL_FORMAT'
+
+    # PH == placeholder
+    PH_ID = 'id'
+    PH_SITE_NAME = 'site_name'
+    PH_CATEGORY = 'category'
+    PH_LAST_FEED_URL = 'LAST_FEED_URL'
+    PH_CRAWLING_URL_FORMAT = 'crawling_url_format'
+
+    # WPH == wrapped placeholder
+    WPH_ID = wrap(PH_ID)
+    WPH_SITE_NAME = wrap(PH_SITE_NAME)
+    WPH_CATEGORY = wrap(PH_CATEGORY)
+    WPH_LAST_FEED_URL = wrap(PH_LAST_FEED_URL)
+    WPH_CRAWLING_URL_FORMAT = wrap(PH_CRAWLING_URL_FORMAT)
+
+    # index of column
+    IDX_ID = 0
+    IDX_SITE_NAME = 1
+    IDX_CATEGORY = 2
+    IDX_NEW_FEED_ID = 3
+    IDX_CRAWLING_URL_FORMAT = 4
+
+    CRAWLING_URL_FORMAT_SIZE = 500
+    LAST_FEED_URL_SIZE = 500
+    CATEGORY_SIZE = 200
+    SITE_NAME_SIZE = 60
+
+    PH_LIMIT_NUMBER = 'limit_number'
+    WPH_LIMIT_NUMBER = wrap(PH_LIMIT_NUMBER)
+
+    SQL_LIMIT = 'LIMIT %s' % WPH_LIMIT_NUMBER
+
+    # sql statement
+    SQL_CREATE_TABLE = " ".join([
+        'CREATE TABLE %s (' % TABLE_NAME,
+        '%s INTEGER PRIMARY KEY AUTOINCREMENT,' % ID,
+        '%s CHAR(%d),' % (SITE_NAME, SITE_NAME_SIZE),
+        '%s CHAR(%d),' % (CATEGORY, CATEGORY_SIZE),
+        '%s CHAR(%d),' % (LAST_FEED_URL, LAST_FEED_URL_SIZE),
+        '%s CHAR(%d)' % (CRAWLING_URL_FORMAT, CRAWLING_URL_FORMAT_SIZE),
+        ')'
+    ])
+
+    SQL_INSERT = ' '.join([
+        'insert into %s' % TABLE_NAME,
+        '(%s, %s, %s, %s)'
+        % (SITE_NAME, CATEGORY, LAST_FEED_URL,
+           CRAWLING_URL_FORMAT),
+        ' values(%s, %s, %s, %s)'
+        % (WPH_SITE_NAME, WPH_CATEGORY, WPH_LAST_FEED_URL,
+           WPH_CRAWLING_URL_FORMAT)
+    ])
+
+    SQL_UPDATE_SET_LAST_FEED_URL = '%s = %s' % (
+        LAST_FEED_URL, WPH_LAST_FEED_URL)
+    SQL_UPDATE_SET_SITE_NAME = '%s = %s' % (SITE_NAME, WPH_SITE_NAME)
+    SQL_UPDATE_SET_CATEGORY = '%s = %s' % (CATEGORY, WPH_CATEGORY)
+    SQL_UPDATE_SET_CRAWLING_URL_FORMAT = '%s = %s' % (
+        CRAWLING_URL_FORMAT, WPH_CATEGORY)
+    SQL_UPDATE = ' '.join([
+        'update %s' % TABLE_NAME,
+        'set %s = %s' % (LAST_FEED_URL, WPH_LAST_FEED_URL),
+        'where %s = %s' % (ID, WPH_ID)
+    ])
+
+    SQL_DELETE = ' '.join([
+        'delete from %s' % TABLE_NAME,
+        'where %s = %s' % (ID, WPH_ID)
+    ])
+
+    SQL_QUERY = ' '.join([
+        'select *',
+        'from %s' % TABLE_NAME
+    ])
+
+    SQL_QUERY_BY_ID = ' '.join([
+        'select *',
+        'from %s' % TABLE_NAME,
+        'where %s = in (%s)' % (ID, '%s')
+    ])
+
+    SQL_QUERY_BY_SITE_NAME_AND_CATEGORY = ' '.join([
+        'select *',
+        'from %s' % TABLE_NAME,
+        'where %s = %s' % (SITE_NAME, PH_SITE_NAME),
+        'and %s = %s' % (CATEGORY, PH_CATEGORY)
+    ])
 
 
 class NewFeedContract(object):
@@ -19,138 +110,97 @@ class NewFeedContract(object):
     TABLE_NAME = 'NEW_FEED_TABLE'
 
     # COL == column
-    COL_ID = 'ID'
-    COL_URL = 'URL'
-    COL_SITE_NAME = 'SITE_NAME'
-    COL_CATEGORY = 'CATEGORY'
-    COL_TITLE = 'TITLE'
-    COL_IS_CHECKED = 'IS_CHECKED'
-
-    # KW == keyword
-    KW_ID = 'id'
-    KW_URL = 'url'
-    KW_SITE_NAME = 'site_name'
-    KW_CATEGORY = 'category'
-    KW_TITLE = 'title'
-    KW_IS_CHECKED = 'is_checked'
-    KW_LIMIT_NUMBER = 'limit_number'
+    ID = 'ID'
+    URL = 'URL'
+    TITLE = 'TITLE'
+    IS_CHECKED = 'IS_CHECKED'
+    WEBSITE_ID = 'WEBSITE_ID'
 
     # PH == placeholder
-    PH_ID = wrap_nf(COL_ID)
-    PH_URL = wrap_nf(COL_URL)
-    PH_SITE_NAME = wrap_nf(COL_SITE_NAME)
-    PH_CATEGORY = wrap_nf(COL_CATEGORY)
-    PH_TITLE = wrap_nf(COL_TITLE)
-    PH_IS_CHECKED = wrap_nf(COL_IS_CHECKED)
-    PH_LIMIT_NUMBER = wrap_nf(KW_LIMIT_NUMBER)
-    PH_TABLE_NAME = wrap_nf(TABLE_NAME)
+    PH_ID = 'id'
+    PH_URL = 'url'
+    PH_TITLE = 'title'
+    PH_IS_CHECKED = 'is_checked'
+    PH_WEBSITE_ID = 'website_id'
+
+    # WPH == wrapped placeholder
+    WPH_ID = wrap(PH_ID)
+    WPH_URL = wrap(PH_URL)
+    WPH_TITLE = wrap(PH_TITLE)
+    WPH_IS_CHECKED = wrap(PH_IS_CHECKED)
+    WPH_WEBSITE_ID = wrap(PH_WEBSITE_ID)
 
     # index of column
     IDX_ID = 0
     IDX_URL = 1
-    IDX_SITE_NAME = 2
-    IDX_CATEGORY = 3
-    IDX_TITLE = 4
-    IDX_IS_CHECKED = 5
+    IDX_TITLE = 2
+    IDX_IS_CHECKED = 3
+    IDX_WEBSITE_ID = 4
 
-    # SQL statement
+    URL_SIZE = 500
+    TITLE_SIZE = 200
+
+    PH_LIMIT_NUMBER = 'limit_number'
+    WPH_LIMIT_NUMBER = wrap(PH_LIMIT_NUMBER)
+
+    SQL_LIMIT = 'LIMIT %s' % WPH_LIMIT_NUMBER
+    SQL_ORDER_BY_URL = 'ORDER BY %s desc' % URL
+
     # create table
-    SQL_CREATE_TABLE = join_str([
+    SQL_CREATE_TABLE = " ".join([
         'CREATE TABLE %s (' % TABLE_NAME,
-        '%s INTEGER PRIMARY KEY AUTOINCREMENT,' % COL_ID,
-        '%s CHAR(%d) UNIQUE,' % (COL_URL, URL_SIZE),
-        '%s CHAR(%d),' % (COL_SITE_NAME, SITE_NAME_SIZE),
-        '%s CHAR(%d),' % (COL_CATEGORY, CATEGORY_SIZE),
-        '%s CHAR(%d),' % (COL_TITLE, TITLE_SIZE),
-        "%s INTEGER check( %s >= 0 AND %s<= 1 )" % (COL_IS_CHECKED, COL_IS_CHECKED, COL_IS_CHECKED),
+        '%s INTEGER PRIMARY KEY AUTOINCREMENT,' % ID,
+        '%s CHAR(%d) UNIQUE,' % (URL, URL_SIZE),
+        '%s CHAR(%d),' % (TITLE, TITLE_SIZE),
+        "%s INTEGER check( %s >= 0 AND %s<= 1 ),"
+        % (IS_CHECKED, IS_CHECKED, IS_CHECKED),
+        "%s INTEGER," % WEBSITE_ID,
+        "FOREIGN KEY(%s) REFERENCES %s(%s)"
+        % (WEBSITE_ID, WebSiteContract.TABLE_NAME, WebSiteContract.ID),
         ")"
     ])
 
-    # insert item
-    SQL_INSERT = join_str([
+    # insert
+    SQL_INSERT = " ".join([
         'INSERT INTO %s' % TABLE_NAME,
-        '( %s, %s, %s, %s, %s )' % (COL_URL, COL_SITE_NAME, COL_TITLE, COL_CATEGORY, COL_IS_CHECKED),
-        'VALUES ( %s, %s, %s, %s, 0)' % (PH_URL, PH_SITE_NAME, PH_TITLE, PH_CATEGORY)
+        '( %s, %s, %s, %s)' % (
+            URL, TITLE, IS_CHECKED, WEBSITE_ID),
+        'VALUES ( %s, %s, 0, %s)' % (WPH_URL, WPH_TITLE, WPH_WEBSITE_ID)
     ])
 
-    SQL_LIMIT = join_str([
-        ' LIMIT %s' % PH_LIMIT_NUMBER
-    ])
-
-    # query
-    SQL_QUERY_ALL = join_str([
-        'SELECT *',
-        'FROM %s' % TABLE_NAME,
-        'ORDER BY %s desc' % COL_URL
-    ])
-
-    SQL_QUERY_BY_URL = join_str([
-        'SELECT *',
-        'FROM %s' % TABLE_NAME,
-        'WHERE %s in ( %s)' % (COL_URL, '%s'),
-        'ORDER BY %s desc' % COL_URL
-    ])
-
-    SQL_QUERY_BY_IS_CHECKED = join_str([
-        'SELECT *',
-        'FROM %s' % TABLE_NAME,
-        'WHERE %s = %s' % (COL_IS_CHECKED, PH_IS_CHECKED),
-        'ORDER BY %s desc' % COL_URL
-    ])
-
-    # update item
-    SQL_UPDATE_CHECK_ITEM = join_str([
+    # update
+    SQL_UPDATE_IS_CHECK = " ".join([
         'UPDATE %s' % TABLE_NAME,
-        'SET %s = %s' % (COL_IS_CHECKED, PH_IS_CHECKED),
-        'WHERE %s = %s' % (COL_ID, PH_ID)
+        'SET %s = %s' % (IS_CHECKED, WPH_IS_CHECKED),
+        'WHERE %s = %s' % (ID, WPH_ID)
     ])
 
     # delete
-    SQL_DELETE_BY_ID = join_str([
+    SQL_DELETE = " ".join([
         "DELETE",
         "FROM %s" % TABLE_NAME,
-        "WHERE %s = %s" % (COL_ID, PH_ID)
+        "WHERE %s = %s" % (ID, WPH_ID)
     ])
 
+    # query
+    SQL_QUERY = " ".join([
+        'SELECT *',
+        'FROM %s' % TABLE_NAME,
+        SQL_ORDER_BY_URL
+    ])
 
-class LastFeedContract(object):
-    # table name
-    TABLE_NAME = 'LAST_FEED_TABLE'
+    SQL_QUERY_BY_URL = " ".join([
+        'SELECT *',
+        'FROM %s' % TABLE_NAME,
+        'WHERE %s in (%s)' % (URL, '%s'),
+        SQL_ORDER_BY_URL
+    ])
 
-    # COL == column
-    COL_ID = 'ID'
-    COL_SITE_NAME = 'SITE_NAME'
-    COL_CATEGORY = 'CATEGORY'
-    COL_NEW_FEED_ID = 'NEW_FEED_ID'
-
-    # KW == keyword
-    KW_ID = 'id'
-    KW_SITE_NAME = 'site_name'
-    KW_CATEGORY = 'category'
-    KW_NEW_FEED_ID = 'new_feed_id'
-
-    # PH == placeholder
-    PH_ID = wrap_nf(COL_ID)
-    PH_SITE_NAME = wrap_nf(COL_SITE_NAME)
-    PH_CATEGORY = wrap_nf(COL_CATEGORY)
-    PH_NEW_FEED_ID = wrap_nf(COL_NEW_FEED_ID)
-    PH_TABLE_NAME = wrap_nf(TABLE_NAME)
-
-    # index of column
-    IDX_ID = 0
-    IDX_SITE_NAME = 1
-    IDX_CATEGORY = 2
-    IDX_NEW_FEED_ID = 3
-
-    # sql statement
-    # TODO test
-    SQL_CREATE_TABLE = join_str([
-        'CREATE TABLE %s (' % TABLE_NAME,
-        '%s INTEGER PRIMARY KEY AUTOINCREMENT,' % COL_ID,
-        '%s CHAR(%d),' % (COL_SITE_NAME, SITE_NAME_SIZE),
-        '%s CHAR(%d),' % (COL_CATEGORY, CATEGORY_SIZE),
-        '%s INTEGER' % COL_NEW_FEED_ID,
-        ')'
+    SQL_QUERY_BY_IS_CHECKED = " ".join([
+        'SELECT *',
+        'FROM %s' % TABLE_NAME,
+        'WHERE %s = %s' % (IS_CHECKED, WPH_IS_CHECKED),
+        SQL_ORDER_BY_URL
     ])
 
 
@@ -161,10 +211,7 @@ class DBContract(object):
     DB_FULL_PATH = path.join('.', DB_FOLDER_NAME, DB_NAME)
     DB_PATH = path.join('.', DB_FOLDER_NAME)
 
-    # TODO change to automatically apply when db schema changed
-    pass
-    # DB each table's contracts
-    CONTRACTS = {
-        NewFeedContract.TABLE_NAME: NewFeedContract,
-        LastFeedContract.TABLE_NAME: LastFeedContract
-    }
+    PH_LIMIT_NUMBER = 'limit_number'
+    WPH_LIMIT_NUMBER = wrap(PH_LIMIT_NUMBER)
+
+    CONTRACTS = [WebSiteContract, NewFeedContract]

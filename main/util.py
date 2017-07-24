@@ -8,9 +8,11 @@ def clean_up():
         shutil.rmtree(DBContract.DB_PATH)
 
 
-def print_table(rows):
-    for i in rows:
-        print(i)
+def print_rows(rows):
+    print('total = %d' % len(rows))
+    for row in rows:
+        print(row)
+    print()
 
 
 def print_parse_items(items):
