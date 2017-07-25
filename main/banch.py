@@ -6,9 +6,10 @@ from main.Parser import Parser
 if __name__ == '__main__':
 
 
-    s = 'ssss'
+    s = 'ssss     sd s s s s s'
     print(s)
     print(str(s))
+    print(s.isspace())
 
     #
     # parser = Parser()

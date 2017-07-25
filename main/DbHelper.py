@@ -9,6 +9,7 @@ def get_post_number(s):
     return int(str(s).split('/')[-1])
 
 
+# TODO hack
 class DbHelper(object):
     MAX_QUERY_PAGE = 5
 
@@ -76,7 +77,6 @@ class DbHelper(object):
     def insert_new_feed(self, items):
         # get insert urls
         key = NewFeedContract.PH_URL
-        insert_urls = [item[key] for item in items]
 
         # get last feed url and filter items
         website_id = items[0][NewFeedContract.PH_WEBSITE_ID]

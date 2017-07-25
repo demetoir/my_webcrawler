@@ -1,33 +1,28 @@
-# import time
-# import random
-#
-# class Delay(object):
-#     def __init__(self):
-#         self.time = 1
-#         pass
-#
-#     def delay(self):
-#         time.sleep(self.time + float(random.randint(1000)) / 1000)
-
 class Interface(object):
     def __init__(self):
         pass
 
+    # TODO implement
     def init_db(self):
         pass
 
+    # TODO implement
     def update_db(self):
         pass
 
+    # TODO implement
     def get_new_feed(self):
         pass
 
+    # TODO implement
     def get_website(self):
         pass
 
+    # TODO implement
     def delete_feed(self):
         pass
 
+    # TODO implement
     def check_feed(self):
         pass
 
