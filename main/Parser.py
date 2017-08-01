@@ -13,6 +13,7 @@ class Parser(object):
         self.log = Logger(self.__class__.__name__).log
         pass
 
+    # hard coding parsing ruliweb
     def parse_ruliweb(self, url):
         try:
             soup = bs(requests.get(url).text, HTML_PARSER)
@@ -45,24 +46,6 @@ class Parser(object):
     def parse_int(string):
         return "".join(filter(lambda c: chr(ord(c)).isnumeric(), string))
 
-    def parse_marumaru(self, target_url):
-
-        ret = []
-        try:
-            soup = bs(requests.get(target_url).text, HTML_PARSER)
-
-            # title_list = []
-            # url_list = []
-            ret = soup.find_all('a')
-
-            pass
-        except Exception as e:
-            self.log.error('parse error url = %s' % target_url)
-            self.log.error(e)
-            raise e
-        else:
-            return ret
-
     def html_analyzer(self, html):
         # print(html)
         html = ' '.join(str(html).split())
@@ -86,49 +69,19 @@ class Parser(object):
                     print(idx, str(content))
             print('----------------------------------------------------------------')
 
-    def f(self, soup):
-        print(soup)
-
     def get_html_text(self, url):
         return requests.get(url).text
 
-    def html_pruning(self, url):
-        html = requests.get(url).text
-        html = ' '.join(html.split())
+    # html delete not using tag
+    def html_delete_targets(self, html, targets):
         soup = bs(html, HTML_PARSER)
+        # extract targets
+        for target in targets:
+            for item in soup.findAll(target):
+                item.extract()
 
         # extract comment
         for item in soup.findAll(text=lambda text: isinstance(text, Comment)):
             item.extract()
 
-        # extract tag
-        extract_tag_list = ['head', 'script', 'header', 'footer', 'noscript']
-        for tag in extract_tag_list:
-            [item.extract() for item in soup.find_all(tag)]
-
-        # extract tag, attrs
-        extract_tag_and_attrs = [('div', {'id': 'popup'}),
-                                 ('div', {'class': 'notice_wrapper'}),
-                                 ('div', {'id': 'context_menu'}),
-                                 ('aside', {'class': 'aside_best'}),
-
-                                 ('div', {'id': 'image_layer'})]
-        for tag, attrs in extract_tag_and_attrs:
-            for item in soup.find_all(tag, attrs):
-                item.extract()
-
-        soup = soup.html.body.div
-        print(soup.children)
-        print(soup.name)
-        print(soup.attrs)
-        for idx, content in enumerate(soup.contents):
-            if str(content).isspace():
-                continue
-
-            if len(str(content)) > 60:
-                print(idx, str(content)[:60] + '...')
-            else:
-                print(idx, str(content))
-
-        # print(soup)
         return str(soup)

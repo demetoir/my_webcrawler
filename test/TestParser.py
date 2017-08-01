@@ -5,10 +5,8 @@ from main.DbContract import NewFeedContract
 from main.Parser import Parser
 from main import util
 
-
 import webbrowser
 import os
-
 
 # from main.Tag import Tag
 
@@ -68,10 +66,9 @@ def test_03_text_analizer():
 
     target_url = url
 
-
     html = parser.html_pruning(target_url)
     path = os.path.curdir
-    file_name ='punning_html.html'
+    file_name = 'punning_html.html'
 
     full_path = os.path.join(path, file_name)
     print(full_path)
@@ -80,10 +77,16 @@ def test_03_text_analizer():
 
     webbrowser.open_new_tab(full_path)
 
-
     # print(text)
     # ret = parser.html_analyzer(text)
+    pass
 
 
+def test_04_html_explorer():
+    parser = Parser()
+    url = 'http://bbs.ruliweb.com/best/humor'
 
+    html = parser.get_html_text(url)
+
+    parser.html_explorer(html)
     pass
