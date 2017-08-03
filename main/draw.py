@@ -7,13 +7,13 @@ def draw_dizzy_circle(img, center, r):
     X = 0
     Y = 1
     value = (0, 0, 0)
-    step = 1.0/3 + 0.01
+    step = 1.0 / 3 + 0.01
 
     angle = 0.0
     while angle < 360:
         x = int(math.cos(math.radians(angle)) * r) + center[X]
         y = int(math.sin(math.radians(angle)) * r) + center[Y]
-        print(angle,math.radians(angle), x, y)
+        print(angle, math.radians(angle), x, y)
         img.putpixel((x, y), value)
 
         angle += step
