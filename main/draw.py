@@ -1,21 +1,33 @@
 from PIL import Image
 from PIL import ImageDraw
 import math
+import random
 
 
-def draw_dizzy_circle(img, center, r):
-    X = 0
-    Y = 1
-    value = (0, 0, 0)
+def draw_dizzy_circle(img, centerXY, radius, value=None):
+    if value is None:
+        value = [0, 0, 0]
+
+    R, G, B = 0, 0, 0
+    R_step, G_step, B_step = 5, 6, 7
+
+    thickness = 60
+    turn = 700
     step = 1.0 / 3 + 0.01
-
     angle = 0.0
-    while angle < 360:
-        x = int(math.cos(math.radians(angle)) * r) + center[X]
-        y = int(math.sin(math.radians(angle)) * r) + center[Y]
-        print(angle, math.radians(angle), x, y)
-        img.putpixel((x, y), value)
 
+    while angle < 360 * turn:
+        # r = radius + random.randint(-thickness, thickness)
+        r = radius + math.sin(angle / 100) * thickness
+        x = int(math.cos(math.radians(angle)) * r) + centerXY[0]
+        y = int(math.sin(math.radians(angle)) * r) + centerXY[1]
+
+        print(r)
+        value[0] = (value[0] + R_step) % 255
+        value[1] = (value[1] + G_step) % 255
+        value[2] = (value[2] + B_step) % 255
+
+        img.putpixel((x, y), value=(value[0], value[1], value[2]))
         angle += step
     return img
 
